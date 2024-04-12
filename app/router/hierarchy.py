@@ -1,8 +1,9 @@
 from typing import Annotated
+from ..models.auth import User
 from fastapi import APIRouter, HTTPException, status, Depends
 from ..config.config import conn, get_mysql_cursor, close_mysql_cursor
 from ..models.hierarchy import Hierarchy, HierarchyResponse
-from ..dependencies import get_db
+from ..dependencies import get_current_active_user, get_db
 
 router = APIRouter(prefix="/hierarchy", tags=["Hierarchy"])
 
@@ -58,7 +59,7 @@ async def create_hierarchy(hierarchy: Hierarchy, conn: Annotated[dict, Depends(g
     response_model=HierarchyResponse,
     response_description="Successsfully retrieved all Hierarchies",
 )
-async def get_hierarchy(conn: Annotated[dict, Depends(get_db)]):
+async def get_hierarchy(conn: Annotated[dict, Depends(get_db)], current_user: Annotated[User, Depends(get_current_active_user)]):
     # get cursor from the get_db depemdency
     cursor = conn["cursor"] 
     # fetch data from db
