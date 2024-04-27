@@ -1,1 +1,1 @@
-from .routes.church import chu_router
+from .routes.head_church import head_chu_router

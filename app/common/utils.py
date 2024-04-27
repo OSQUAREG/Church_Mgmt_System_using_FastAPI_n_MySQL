@@ -1,85 +1,48 @@
-import os
-from datetime import datetime, timedelta, timezone
-from typing import Annotated, Union
-
-from dotenv import load_dotenv
-from fastapi import HTTPException, status, Depends  # type: ignore
-from passlib.context import CryptContext  # type: ignore
-from jose import jwt  # type: ignore
+from fastapi import HTTPException, status  # type: ignore
 from phonenumbers import format_number, PhoneNumberFormat, parse  # type: ignore
-
-from ..authentication.models.auth import UserIn
-from ..common.config import get_mysql_cursor, close_mysql_cursor, conn
-
-
-load_dotenv()
-
-
-secret_key = os.getenv("SECRET_KEY")
-algorithm = os.getenv("ALGORITHM")
-access_token_expire_minutes = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
-
-
-# Password Context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-# Verify Password
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-# Get Hash Password
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-
-# Get User from DB
-def get_user(username: str):
-
-    try:
-        mydb, cursor = get_mysql_cursor()
-        cursor.execute(
-            "SELECT * FROM tblUser WHERE Usercode = %s;",
-            (username,),
-        )
-        user = cursor.fetchone()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
-            )
-        return UserIn(**user)
-    except conn.Error as err:
-        raise HTTPException(status_code=500, detail=f"MySQL Error: {err}")
-    finally:
-        close_mysql_cursor(mydb, cursor)
-
-
-# Authenticate User
-def authenticate_user(username: str, password: str):
-    user = get_user(username)
-    if not user:
-        return False
-    if not verify_password(password, user.Password.get_secret_value()):
-        return False
-    return user
-
-
-# Create Access Token
-def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(
-        to_encode, key=secret_key, algorithm=algorithm
-    )  # type: ignore
-    return encoded_jwt
+from sqlalchemy import text  # type: ignore
+from sqlalchemy.orm import Session  # type: ignore
 
 
 def get_phonenumber(number_str: str):
     phonenumber = format_number(parse(number_str), PhoneNumberFormat.E164)
     return phonenumber
+
+
+def check_if_new_code_exist(code: str, table_name: str, db: Session):
+    code_check = db.execute(
+        text(f"SELECT * FROM {table_name} WHERE Code = :Code;"),
+        dict(Code=code),
+    ).first()
+    if code_check and code_check.Code != code:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Code: '{code}' already exists",
+        )
+    return True
+
+
+def check_if_new_name_exist(name: str, table_name: str, db: Session):
+    name_check = db.execute(
+        text(f"SELECT * FROM {table_name} WHERE Name = :Name;"),
+        dict(Name=name),
+    ).first()
+    db_name = custom_title_case(name_check.Name) if name_check else None
+    check_name = custom_title_case(name)
+    if name_check and (db_name != check_name):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Name: '{name}' already exists",
+        )
+    return True
+
+
+def custom_title_case(s):
+    words = s.split()
+    for i, word in enumerate(words):
+        if len(word) > 1 and word.isupper():
+            # Skip words with two consecutive capital letters
+            continue
+        else:
+            words[i] = word.capitalize()
+    return " ".join(words)
