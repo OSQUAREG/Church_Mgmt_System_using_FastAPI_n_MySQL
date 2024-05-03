@@ -40,10 +40,11 @@
 
 #### Route functions
 
-- [X] **Get All Hierarchies** - gets all the hierarchies related to user's head church with their status
+- [X] **Get All Hierarchies** - gets all the hierarchies related to user's Head Church with their status
 - [X] **Get Hierarchy by Code** - gets only one hierarchy by provided code
-- [X] **Activate Hierarchy by Code** - activates a specified hierarchy in a user's head church
-- [X] **Deactivate Hierarchy by Code** - deactivates a specified hierarchy in a user's head church
+- [X] **Activate Hierarchy by Code** - activates a specified hierarchy in a user's Head Church
+- [X] **Deactivate Hierarchy by Code** - deactivates a specified hierarchy in a user's Head Church
+- [ ] Update Hierarchy by Code - updates the church level name or code.
 
 ### Head Church
 

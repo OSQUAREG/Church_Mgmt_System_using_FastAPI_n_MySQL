@@ -54,32 +54,68 @@ tags_metadata = [
         "name": "Head Church Operations",
         "description": "Operations on the Head Church",
     },
-    # Province Sub Module
+    # Level 1 Church Sub Module
     {
-        "name": "Province Operations - Admin only",
-        "description": "Operations on the Provinces by Admin",
+        "name": "Level 1 Church Operations - Admin only",
+        "description": "Operations on the Level 1 Churches by Admin",
     },
     {
-        "name": "Province Operations",
-        "description": "Operations on the Provinces",
+        "name": "Level 1 Church Operations",
+        "description": "Operations on the Level 1 Churches",
     },
-    # Zone Sub Module
+    # Level 2 Church Sub Module
     {
-        "name": "Zones Operations - Admin only",
-        "description": "Operations on the Zones by Admin",
-    },
-    {
-        "name": "Zones Operations",
-        "description": "Operations on the Zones",
-    },
-    # Area Sub Module
-    {
-        "name": "Area Operations - Admin only",
-        "description": "Operations on the Areas by Admin",
+        "name": "Level 2 Church Operations - Admin only",
+        "description": "Operations on the Level 1 Churches by Admin",
     },
     {
-        "name": "Area Operations",
-        "description": "Operations on the Areas",
+        "name": "Level 2 Church Operations",
+        "description": "Operations on the Level 2 Churches",
+    },
+    # Level 3 Church Sub Module
+    {
+        "name": "Level 3 Church Operations - Admin only",
+        "description": "Operations on the Level 3 Churches by Admin",
+    },
+    {
+        "name": "Level 3 Church Operations",
+        "description": "Operations on the Level 3 Churches",
+    },
+    # Level 4 Church Sub Module
+    {
+        "name": "Level 4 Church Operations - Admin only",
+        "description": "Operations on the Level 4 Churches by Admin",
+    },
+    {
+        "name": "Level 4 Church Operations",
+        "description": "Operations on the Level 4 Churches",
+    },
+    # Level 5 Church Sub Module
+    {
+        "name": "Level 5 Church Operations - Admin only",
+        "description": "Operations on the Level 5 Churches by Admin",
+    },
+    {
+        "name": "Level 5 Church Operations",
+        "description": "Operations on the Level 5 Churches",
+    },
+    # Level 6 Church Sub Module
+    {
+        "name": "Level 6 Church Operations - Admin only",
+        "description": "Operations on the Level 6 Churches by Admin",
+    },
+    {
+        "name": "Level 6 Church Operations",
+        "description": "Operations on the Level 6 Churches",
+    },
+    # Level 7 Church Sub Module
+    {
+        "name": "Level 7 Church Operations - Admin only",
+        "description": "Operations on the Level 7 Church by Admin",
+    },
+    {
+        "name": "Level 7 Church Operations",
+        "description": "Operations on the Level 7 Church",
     },
     # Branch Sub Module
     {

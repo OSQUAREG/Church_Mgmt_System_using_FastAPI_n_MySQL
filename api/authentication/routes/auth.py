@@ -4,7 +4,13 @@ from fastapi import APIRouter, status, Depends  # type: ignore
 from fastapi.security import OAuth2PasswordRequestForm  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
-from ..models.auth import TokenAccessResponse, TokenResponse, User, UserAccess
+from ..models.auth import (
+    TokenLevelResponse,
+    TokenResponse,
+    User,
+    UserAccess,
+    UserLevel,
+)
 from ...common.dependencies import get_current_user, get_current_user_access
 from ...authentication.services.auth import AuthService
 from ...common.database import get_db
@@ -51,7 +57,7 @@ async def login(
     "/select_level/{church_level}",
     status_code=status.HTTP_201_CREATED,
     name="Select Church Level/Re-authenticate",
-    response_model=TokenAccessResponse,
+    response_model=TokenLevelResponse,
 )
 async def select_level(
     church_level: str,
@@ -75,7 +81,7 @@ async def select_level(
     # set response body
     response = dict(
         status_code=status.HTTP_200_OK,
-        message="Successsfully logged in",
+        message=f"Successsfully logged in and selected {church_level} Church Level",
         access_token=access_token,
         token_type="bearer",
         user_access=user_access,
@@ -87,10 +93,11 @@ async def select_level(
     "/users/me",
     status_code=status.HTTP_200_OK,
     name="Get Current Active User",
-    response_model=UserAccess,
+    response_model=list[UserAccess],
 )
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_user_access)],
+    token: str | None = None,
     db: Session = Depends(get_db),
 ):
     return current_user

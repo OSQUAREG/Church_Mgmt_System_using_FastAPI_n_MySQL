@@ -1,10 +1,9 @@
 # !/Users/gregory.ogbemudia/AppData/Local/Programs/Python/Python312/python.exe
-
-from enum import Enum
-import os
-
 from fastapi import FastAPI, Request  # , HTTPException, status, Depends  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
+from fastapi.responses import HTMLResponse  # type: ignore
+from fastapi.staticfiles import StaticFiles  # type: ignore
+from fastapi.templating import Jinja2Templates  # type: ignore
 
 from .authentication.routes import auth_router
 from .admin.routes import adm_head_chu_router
@@ -14,6 +13,7 @@ from .hierarchy_mgmt.routes import (
     province_router,
     zone_router,
     area_router,
+    level1_router,
 )
 from .common.config import settings
 from .swagger_doc import (
@@ -24,10 +24,6 @@ from .swagger_doc import (
     license_info,
     version,
 )
-
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 
 # Define CORS policy
@@ -65,11 +61,14 @@ def create_app():
     app.include_router(hierarchy_router)
     app.include_router(adm_head_chu_router)
     app.include_router(head_chu_router)
-    app.include_router(province_router)
-    app.include_router(zone_router)
-    app.include_router(area_router)
+    app.include_router(level1_router)
+    # app.include_router(province_router)
+    # app.include_router(zone_router)
+    # app.include_router(area_router)
 
     # Templates
+    import os
+
     current_directory = os.path.dirname(__file__)
 
     static_directory = os.path.join(current_directory, "static")
@@ -90,9 +89,6 @@ def create_app():
         return templates.TemplateResponse(
             request=request, name="item.html", context={"id": id}
         )
-
-    # @app.post("/auth/login")
-    # async def login(request: Request):
 
     @app.get("/shutdown_server")
     async def shutdown_server():

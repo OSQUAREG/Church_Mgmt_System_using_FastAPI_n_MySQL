@@ -23,20 +23,26 @@ class User(BaseModel):
 #     pass
 
 
+class UserLevel(BaseModel):
+    Usercode: str
+    Email: Optional[EmailStr] = None
+    Level_Code: str
+    ChurchLevel_Code: str
+    HeadChurch_Code: str
+
+
 class UserAccess(BaseModel):
     Usercode: str
     Email: Optional[EmailStr] = None
-    Role_Code: str
     Level_Code: str
+    Role_Code: str
     Church_Code: str
+    ChurchLevel_Code: str
+    Church_Level: str
     HeadChurch_Code: str
     Module_Code: str
     SubModule_Code: str
     Access_Type: str
-
-
-# class UserAccessIn(UserAccess, UserPassword):
-#     pass
 
 
 class TokenData(BaseModel):
@@ -51,9 +57,17 @@ class TokenResponse(BaseModel):
     user: Union[list[User], User, None] = None
 
 
-class TokenAccessData(BaseModel):
+class TokenLevelData(BaseModel):
     username: Union[str, None] = None
     church_level: Union[str, None] = None
+
+
+class TokenLevelResponse(BaseModel):
+    status_code: int
+    message: str
+    access_token: str
+    token_type: str
+    user_access: Union[list[UserLevel], UserLevel, None] = None
 
 
 class TokenAccessResponse(BaseModel):

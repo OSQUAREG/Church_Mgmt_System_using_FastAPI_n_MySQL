@@ -25,12 +25,18 @@ class HeadChurchBase(BaseModel):
     Alt_Name: Optional[str] = Field(
         default=None, examples=["Test Church Alternate Name"], max_length=255
     )
-    Address: str = Field(max_length=255)
+    Address: str = Field(examples=["This is the address of the Church"], max_length=255)
     Founding_Date: Optional[date] = Field(default=None, examples=["2000-12-31"])
-    About: Optional[str] = None
-    Mission: Optional[str] = Field(default=None, max_length=1000)
-    Vision: Optional[str] = Field(default=None, max_length=1000)
-    Motto: Optional[str] = Field(default=None, max_length=255)
+    About: Optional[str] = Field(default=None, examples=["This is about the Church"])
+    Mission: Optional[str] = Field(
+        default=None, examples=["This is the mission of the Church"], max_length=1000
+    )
+    Vision: Optional[str] = Field(
+        default=None, examples=["This is the vision of the Church"], max_length=1000
+    )
+    Motto: Optional[str] = Field(
+        default=None, examples=["This is the moto of the Church"], max_length=255
+    )
     Contact_No: PhoneNumber = Field(examples=["+2348012345678"], max_length=25)
     Contact_No2: Optional[PhoneNumber] = Field(
         default=None, examples=["+2348012345678"], max_length=25
@@ -71,12 +77,20 @@ class HeadChurchUpdate(BaseModel):
     Alt_Name: Optional[str] = Field(
         default=None, examples=["Test Church Alternate Name"], max_length=255
     )
-    Address: str = Field(default=None, max_length=255)
+    Address: str = Field(
+        default=None, examples=["This is the address of the Church"], max_length=255
+    )
     Founding_Date: Optional[date] = Field(default=None, examples=["2000-12-31"])
-    About: Optional[str] = None
-    Mission: Optional[str] = Field(default=None, max_length=1000)
-    Vision: Optional[str] = Field(default=None, max_length=1000)
-    Motto: Optional[str] = Field(default=None, max_length=255)
+    About: Optional[str] = Field(default=None, examples=["This is about the Church"])
+    Mission: Optional[str] = Field(
+        default=None, examples=["This is the mission of the Church"], max_length=1000
+    )
+    Vision: Optional[str] = Field(
+        default=None, examples=["This is the vision of the Church"], max_length=1000
+    )
+    Motto: Optional[str] = Field(
+        default=None, examples=["This is the motto of the Church"], max_length=255
+    )
     Contact_No: PhoneNumber = Field(
         default=None, examples=["+2348012345678"], max_length=25
     )
@@ -104,13 +118,16 @@ class HeadChurchUpdate(BaseModel):
         return get_phonenumber(v) if v else None
 
 
-class HeadChurchUpdateIn(HeadChurchUpdate):
+class HeadChurchCodeIn(BaseModel):
     Code: str = Field(default=None, examples=["TEST"], max_length=4)
 
-    def __init__(self, **data):
-        super().__init__(**data)
-        if self.Code:
-            self.Code.upper()
+    @validator("Code")
+    def uppercase_string(cls, v):
+        return v.upper() if v else None
+
+
+class HeadChurchUpdateIn(HeadChurchUpdate, HeadChurchCodeIn):
+    pass
 
 
 class CodeModel(BaseModel):

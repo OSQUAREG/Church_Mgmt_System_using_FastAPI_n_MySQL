@@ -1,10 +1,15 @@
+from ...check import User
 from fastapi import HTTPException, status  # type: ignore
 from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
-from ...authentication.models.auth import User
+from ...authentication.models.auth import UserAccess
 from ...hierarchy_mgmt.models.head_church import HeadChurchUpdateIn
-from ...common.utils import check_if_new_code_exist, check_if_new_name_exist
+from ...common.utils import (
+    check_if_new_code_exist,
+    check_if_new_name_exist,
+    set_user_access,
+)
 
 
 class HeadChurchService:
@@ -14,12 +19,30 @@ class HeadChurchService:
     - Update Head Church by Code
     """
 
-    def get_head_church_by_code(self, code: str, db: Session):
+    async def get_head_church_by_code(
+        self,
+        code: str,
+        db: Session,
+        current_user: User,
+        current_user_access: UserAccess,
+    ):
         try:
+            # set user access
+            set_user_access(
+                current_user_access,
+                headchurch_code=current_user.HeadChurch_Code,
+                role_code=["ADM", "SAD"],
+                level_code=["CHU"],
+                module_code=["HRCH"],
+                submodule_code=["HEAD"],
+                access_type=["VW", "ED"],
+            )
+            # fetch data from db
             head_church = db.execute(
                 text("SELECT * FROM tblCLHeadChurch WHERE Code = :Code;"),
                 dict(Code=code),
             ).first()
+            # check if data exists
             if not head_church:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -30,22 +53,27 @@ class HeadChurchService:
             db.rollback()
             raise err
 
-    def update_head_church_by_code(
+    async def update_head_church_by_code(
         self,
         code: str,
         head_church: HeadChurchUpdateIn,
         db: Session,
         current_user: User,
-        church_level: str,
+        current_user_access: UserAccess,
     ):
         try:
-            if church_level != "CHU":
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You are NOT ALLOWED to perform this action",
-                )
-            # check if Code exists
-            old_head_church = self.get_head_church_by_code(code, db)
+            # set user access
+            set_user_access(
+                current_user_access,
+                headchurch_code=code,
+                role_code=["ADM", "SAD"],
+                submodule_code=["PROV", "HEAD"],
+                access_type=["ED"],
+            )
+            # check if code exists
+            old_head_church = await self.get_head_church_by_code(
+                code, db, current_user, current_user_access
+            )
             # check if new Code or Name already exists
             check_if_new_code_exist(head_church.Code, "tblCLHeadChurch", db)
             check_if_new_name_exist(head_church.Name, "tblCLHeadChurch", db)
@@ -171,7 +199,9 @@ class HeadChurchService:
             db.commit()
             # fetch the updated data
             h_code = head_church.Code if head_church.Code else old_head_church.Code
-            updated_data = self.get_head_church_by_code(h_code, db)
+            updated_data = await self.get_head_church_by_code(
+                h_code, db, current_user, current_user_access
+            )
             return updated_data
         except Exception as err:
             db.rollback()

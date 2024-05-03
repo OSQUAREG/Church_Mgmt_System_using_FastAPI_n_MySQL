@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session  # type: ignore
 from ...authentication.models.auth import User
 from ...common.database import get_db
 from ...common.dependencies import get_current_user
-from ...hierarchy_mgmt.services.province import ProvinceService
-from ...hierarchy_mgmt.models.province import (
+from ..services.church_level4 import ProvinceService
+from ..models.church_level4 import (
     ProvinceBase,
     ProvinceResponse,
     ProvinceUpdate,

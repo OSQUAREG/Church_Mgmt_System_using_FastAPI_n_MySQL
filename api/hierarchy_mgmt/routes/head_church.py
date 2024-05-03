@@ -1,9 +1,10 @@
+from http.client import HTTPException
 from typing import Annotated
 
 from fastapi import APIRouter, status, Depends  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
-from ...authentication.models.auth import User
+from ...authentication.models.auth import User, UserAccess, UserLevel
 from ...common.database import get_db
 from ...common.dependencies import get_current_user, get_current_user_access
 from ...hierarchy_mgmt.services.head_church import HeadChurchService
@@ -30,13 +31,16 @@ async def get_head_church_by_code(
     code: str,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
+    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
 ):
-    head_church = HeadChurchService().get_head_church_by_code(code, db)
+    head_church = await HeadChurchService().get_head_church_by_code(
+        code, db, current_user, current_user_access
+    )
     # set response body
     response = dict(
         data=head_church,
         status_code=status.HTTP_200_OK,
-        message=f"Successsfully retrieved Head Church: {head_church.Name} with code: {code}",
+        message=f"Successsfully retrieved Head Church: '{head_church.Name}' with code: '{code}'",
     )
     return response
 
@@ -52,10 +56,11 @@ async def update_head_church_by_code(
     code: str,
     head_church: HeadChurchUpdateIn,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user_access)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
 ):
-    updated_head_church = HeadChurchService().update_head_church_by_code(
-        code, head_church, db, current_user, current_user.church_level
+    updated_head_church = await HeadChurchService().update_head_church_by_code(
+        code, head_church, db, current_user, current_user_access
     )
     # set response body
     response = dict(

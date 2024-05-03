@@ -3,9 +3,9 @@ from fastapi import HTTPException, status  # type: ignore
 from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
-from ...authentication.models.auth import User
-from ...hierarchy_mgmt.models.province import ProvinceBase, ProvinceUpdate
-from ...common.utils import check_if_new_name_exist, custom_title_case
+from ...authentication.models.auth import User, UserAccess
+from ..models.church_level4 import ProvinceBase, ProvinceUpdate
+from ...common.utils import check_if_new_name_exist, custom_title_case, set_user_access
 
 
 class ProvinceService:
@@ -21,9 +21,23 @@ class ProvinceService:
     """
 
     def create_new_province(
-        self, province: ProvinceBase, db: Session, current_user: User
+        self,
+        province: ProvinceBase,
+        db: Session,
+        current_user: User,
+        current_user_access: UserAccess,
     ):
         try:
+            # set user access
+            set_user_access(
+                current_user_access,
+                headchurch_code=current_user.HeadChurch_Code,
+                role_code=["ADM", "SAD"],
+                level_code=["PRV"],
+                module_code=["HRCH"],
+                submodule_code=["HEAD", "CL4"],
+                access_type=["CR"],
+            )
             # checks if Name already exist
             check_if_new_name_exist(province.Name, "tblCLProvince", db)
             # insert new province
