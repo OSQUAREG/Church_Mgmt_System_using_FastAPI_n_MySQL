@@ -4,8 +4,6 @@
 2. Type `import secrets` and enter
 3. Type `secrets.token_hex(32)` and enter
 
-
-
 # Postman
 
 ## Setting JWT Token as Env Variable
@@ -20,7 +18,6 @@ pm.globals.set("access_token", token);
 
 pm.environment.set("access_token", token);
 
-
 ### Select Church Level => test code:
 
 var jsonData = pm.response.json();
@@ -34,3 +31,12 @@ pm.environment.unset("access_token");
 pm.globals.set("access_token", token);
 
 pm.environment.set("access_token", token);
+
+
+# Client App
+
+```
+py --list-paths  # To see the installed Python versions
+set npm_config_python=C:\path\to\python.exe  # CMD
+$Env:npm_config_python="C:\path\to\python.exe"  # PowerShell
+```

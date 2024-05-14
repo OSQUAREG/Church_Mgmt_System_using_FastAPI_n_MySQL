@@ -1,48 +1,46 @@
 from typing import Annotated
 
-from fastapi import APIRouter, status, Depends  # type: ignore
+from fastapi import APIRouter, status, Depends, Form  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
 from ...authentication.models.auth import User
 from ...common.database import get_db
 from ...common.dependencies import get_current_user, get_current_user_access
-from ...hierarchy_mgmt.services.level1 import Level1Service
-from ...hierarchy_mgmt.models.level1 import (
-    Level1Base,
-    Level1Response,
-    Level1Update,
-)
+from ...hierarchy_mgmt.services import ChurchServices
+from ...hierarchy_mgmt.models.church import ChurchBase, ChurchResponse, ChurchUpdate
 
 
-level1_router = APIRouter(prefix=f"/cl1", tags=["Level 1 Church Operations"])
+church_router = APIRouter(prefix=f"/church", tags=["Church Operations"])
 
 """
 #### Church Routes
-- Create New Level 1 Church
-- Approved Level 1 Church by Code
-- Get All Level 1 Churches
-- Get Level 1 Church by Code
-- Update Level 1 Church by Code
-- Activate Level 1 Church by code
-- Deactivate Level 1 Church by Code
+- Create New Church
+- Approved Church by Code
+- Get All Churches
+- Get Churches by Level
+- Get Church by Code
+- Update Church by Code
+- Activate Church by Code
+- Deactivate Church by Code
 """
 
 
 # Create New Church
-@level1_router.post(
+@church_router.post(
     "/create",
     status_code=status.HTTP_201_CREATED,
-    name="Create New Level 1 Church",
-    response_model=Level1Response,
+    name="Create New Church",
+    response_model=ChurchResponse,
 )
-async def create_new_level1_church(
-    church: Level1Base,
+async def create_new_church(
+    level_code: str,
+    church: ChurchBase,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
     current_user_access: Annotated[User, Depends(get_current_user_access)],
 ):
-    new_church = await Level1Service().create_new_level1_church(
-        church, db, current_user, current_user_access
+    new_church = await ChurchServices().create_new_church(
+        level_code, church, db, current_user, current_user_access
     )
     # set response body
     response = dict(
@@ -54,11 +52,11 @@ async def create_new_level1_church(
 
 
 # Approve church by code
-@level1_router.patch(
+@church_router.patch(
     "/{code}/approve",
     status_code=status.HTTP_200_OK,
-    name="Approve Level 1 Church by Code",
-    response_model=Level1Response,
+    name="Approve Church by Code",
+    response_model=ChurchResponse,
 )
 async def approve_church_by_code(
     code: str,
@@ -66,7 +64,7 @@ async def approve_church_by_code(
     current_user: Annotated[User, Depends(get_current_user)],
     current_user_access: Annotated[User, Depends(get_current_user_access)],
 ):
-    approved_church = await Level1Service().approve_level1_church_by_code(
+    approved_church = await ChurchServices().approve_church_by_code(
         code, db, current_user, current_user_access
     )
     # set response body
@@ -78,35 +76,60 @@ async def approve_church_by_code(
     return response
 
 
-# Get All Churchs
-@level1_router.get(
+# Get All Churches
+@church_router.get(
     "/",
     status_code=status.HTTP_200_OK,
-    name="Get All Level 1 Churches",
-    response_model=Level1Response,
+    name="Get All Churches",
+    response_model=ChurchResponse,
 )
-async def get_all_level1_churches(
+async def get_all_churches(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
     current_user_access: Annotated[User, Depends(get_current_user_access)],
 ):
-    churchs = await Level1Service().get_all_level1_churches(
+    churches = await ChurchServices().get_all_churches(
         db, current_user, current_user_access
     )
     # set response body
     response = dict(
-        data=churchs,
+        data=churches,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully retrieved all {len(churchs)} Churchs",
+        message=f"Successfully retrieved all {len(churches)} Churches",
     )
     return response
 
 
-@level1_router.get(
+# Get Churches by Level
+@church_router.get(
+    "/level/{level_code}",
+    status_code=status.HTTP_200_OK,
+    name="Get Churches by Level",
+    response_model=ChurchResponse,
+)
+async def get_churches_by_level(
+    level_code: str,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    current_user_access: Annotated[User, Depends(get_current_user_access)],
+):
+    churches = await ChurchServices().get_churches_by_level(
+        level_code, db, current_user, current_user_access
+    )
+    # set response body
+    response = dict(
+        data=churches,
+        status_code=status.HTTP_200_OK,
+        message=f"Successfully retrieved all {len(churches)} Churches in level: '{level_code.upper()}'",
+    )
+    return response
+
+
+@church_router.get(
     "/{code}",
     status_code=status.HTTP_200_OK,
-    name="Get Level 1 Church by Code",
-    response_model=Level1Response,
+    name="Get Church by Code",
+    response_model=ChurchResponse,
 )
 async def get_church_by_code(
     code: str,
@@ -114,7 +137,7 @@ async def get_church_by_code(
     current_user: Annotated[User, Depends(get_current_user)],
     current_user_access: Annotated[User, Depends(get_current_user_access)],
 ):
-    church = await Level1Service().get_church_by_code(
+    church = await ChurchServices().get_church_by_code(
         code, db, current_user, current_user_access
     )
     # set response body
@@ -127,20 +150,20 @@ async def get_church_by_code(
 
 
 # update church by code
-@level1_router.put(
+@church_router.put(
     "/{code}/update",
     status_code=status.HTTP_200_OK,
-    name="Update Level 1 Church by Code",
-    response_model=Level1Response,
+    name="Update Church by Code",
+    response_model=ChurchResponse,
 )
 async def update_church_by_code(
     code: str,
-    church: Level1Update,
+    church: ChurchUpdate,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
     current_user_access: Annotated[User, Depends(get_current_user_access)],
 ):
-    updated_church = await Level1Service().update_level1_church_by_code(
+    updated_church = await ChurchServices().update_church_by_code(
         code, church, db, current_user, current_user_access
     )
     # set response body
@@ -153,11 +176,11 @@ async def update_church_by_code(
 
 
 # Activate church by code
-@level1_router.patch(
+@church_router.patch(
     "/{code}/activate",
     status_code=status.HTTP_200_OK,
-    name="Activate Level 1 Church by Code",
-    response_model=Level1Response,
+    name="Activate Church by Code",
+    response_model=ChurchResponse,
 )
 async def activate_church_by_code(
     code: str,
@@ -165,7 +188,7 @@ async def activate_church_by_code(
     current_user: Annotated[User, Depends(get_current_user)],
     current_user_access: Annotated[User, Depends(get_current_user_access)],
 ):
-    activated_church = await Level1Service().activate_church_by_code(
+    activated_church = await ChurchServices().activate_church_by_code(
         code, db, current_user, current_user_access
     )
     # set response body
@@ -178,11 +201,11 @@ async def activate_church_by_code(
 
 
 # deactivate church by code
-@level1_router.patch(
+@church_router.patch(
     "/{code}/deactivate",
     status_code=status.HTTP_200_OK,
     name="Deactivate Church by Code",
-    response_model=Level1Response,
+    response_model=ChurchResponse,
 )
 async def deactivate_church_by_code(
     code: str,
@@ -190,7 +213,7 @@ async def deactivate_church_by_code(
     current_user: Annotated[User, Depends(get_current_user)],
     current_user_access: Annotated[User, Depends(get_current_user_access)],
 ):
-    deactivated_church = await Level1Service().deactivate_church_by_code(
+    deactivated_church = await ChurchServices().deactivate_church_by_code(
         code, db, current_user, current_user_access
     )
     # set response body

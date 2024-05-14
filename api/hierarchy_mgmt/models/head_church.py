@@ -1,12 +1,7 @@
 from datetime import date, datetime
 from typing import Optional, Union
 
-from pydantic import (
-    BaseModel,
-    EmailStr,
-    Field,
-    validator,
-)  # type: ignore
+from pydantic import BaseModel, EmailStr, Field, validator  # type: ignore
 from pydantic_extra_types.phone_numbers import PhoneNumber  # type: ignore
 
 from ...common.utils import get_phonenumber, custom_title_case
@@ -48,6 +43,10 @@ class HeadChurchBase(BaseModel):
     Region_Code: str = Field(max_length=4)
     Country_Code: str = Field(max_length=4)
     Is_Active: Optional[bool] = True
+    Created_Date: Optional[datetime] = None
+    Created_By: Optional[str] = None
+    Modified_Date: Optional[datetime] = None
+    Modified_By: Optional[str] = None
 
     @validator("Name", "Alt_Name", "Address")
     def title_case_strings(cls, v):
@@ -104,6 +103,10 @@ class HeadChurchUpdate(BaseModel):
     Region_Code: str = Field(default=None, max_length=4)
     Country_Code: str = Field(default=None, max_length=4)
     Is_Active: Optional[bool] = None
+    Created_Date: Optional[datetime] = None
+    Created_By: Optional[str] = None
+    Modified_Date: Optional[datetime] = None
+    Modified_By: Optional[str] = None
 
     @validator("Name", "Alt_Name", "Address")
     def title_case_strings(cls, v):
@@ -118,7 +121,7 @@ class HeadChurchUpdate(BaseModel):
         return get_phonenumber(v) if v else None
 
 
-class HeadChurchCodeIn(BaseModel):
+class HeadChurchCodeUpdate(BaseModel):
     Code: str = Field(default=None, examples=["TEST"], max_length=4)
 
     @validator("Code")
@@ -126,11 +129,11 @@ class HeadChurchCodeIn(BaseModel):
         return v.upper() if v else None
 
 
-class HeadChurchUpdateIn(HeadChurchUpdate, HeadChurchCodeIn):
+class HeadChurchUpdateIn(HeadChurchUpdate, HeadChurchCodeUpdate):
     pass
 
 
-class CodeModel(BaseModel):
+class ChurchCode(BaseModel):
     Code: str = Field(default=None, examples=["TEST-AAA-000000000"], max_length=18)
 
     @validator("Code")
@@ -138,7 +141,7 @@ class CodeModel(BaseModel):
         return v.upper() if v else None
 
 
-class ApproveModel(BaseModel):
-    Is_Approved: Optional[bool] = None
-    Approved_By: Optional[str] = None
-    Approved_Date: Optional[datetime] = None
+class ChurchStatus(BaseModel):
+    Status: Optional[str] = None
+    Status_Date: Optional[datetime] = None
+    Status_By: Optional[str] = None

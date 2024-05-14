@@ -9,13 +9,21 @@ from ..models.auth import (
     TokenResponse,
     User,
     UserAccess,
-    UserLevel,
+    UserLevels,
 )
 from ...common.dependencies import get_current_user, get_current_user_access
 from ...authentication.services.auth import AuthService
 from ...common.database import get_db
 
 auth_router = APIRouter(prefix="/auth", tags=["Authentication Operations"])
+
+"""
+#### Authentication Routes
+- Login User
+- Select Church Level/Re-authenticate
+- Get Current User
+- Get Current User Levels
+"""
 
 
 # User Login Route
@@ -67,9 +75,7 @@ async def select_level(
 
     # authenticate user
     user_access = AuthService().re_authenticate_user_access(
-        church_level,
-        current_user,
-        db,
+        church_level, current_user, db
     )
     # create access token
     access_token = AuthService().create_access_token(
@@ -81,7 +87,7 @@ async def select_level(
     # set response body
     response = dict(
         status_code=status.HTTP_200_OK,
-        message=f"Successsfully logged in and selected {church_level} Church Level",
+        message=f"Successsfully logged in and selected {user_access.ChurchLevel_Code if user_access.ChurchLevel_Code else user_access.Level_Code} Church Level",
         access_token=access_token,
         token_type="bearer",
         user_access=user_access,
@@ -97,7 +103,19 @@ async def select_level(
 )
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_user_access)],
-    token: str | None = None,
-    db: Session = Depends(get_db),
 ):
     return current_user
+
+
+@auth_router.get(
+    "/user_levels/me",
+    status_code=status.HTTP_200_OK,
+    name="Get Current Active User Levels",
+    response_model=list[UserLevels],
+)
+async def get_user_levels(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+):
+    user_levels = AuthService().get_user_levels(current_user.Usercode, db)
+    return user_levels

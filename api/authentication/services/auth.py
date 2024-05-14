@@ -51,7 +51,13 @@ class AuthService:
     def get_user(self, username: str, db: Session):
         try:
             user = db.execute(
-                text("SELECT * FROM tblUser WHERE Usercode = :Usercode;"),
+                text(
+                    """
+                    SELECT A.Usercode, A.Email, A.HeadChurch_Code, A.Is_Active, B.Title, B.Titl2, B.First_Name, B.Last_Name FROM tblUser A
+                    LEFT JOIN tblMember B ON B.Code = A.Usercode
+                    WHERE Usercode = :Usercode;
+                    """
+                ),
                 dict(Usercode=username),
             ).first()
             if not user:
@@ -125,7 +131,7 @@ class AuthService:
     # Get User Access
     def get_user_level(self, username: str, church_level: str, db: Session):
         try:
-            user_access = db.execute(
+            user_level = db.execute(
                 text(
                     """
                     SELECT DISTINCT A.Usercode, Password, Email, A.Level_Code, C.ChurchLevel_Code, A.HeadChurch_Code
@@ -142,13 +148,13 @@ class AuthService:
                     ChurchLevel_Code=church_level,
                 ),
             ).first()
-            if not user_access:
+            if not user_level:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found",
                 )
             print("user level fetched")
-            return user_access
+            return user_level
         except Exception as err:
             db.rollback()
             print(err)
@@ -237,12 +243,14 @@ class AuthService:
             user_access = db.execute(
                 text(
                     """
-                    SELECT A.Usercode, Password, Email, Role_Code, A.Level_Code, ChurchLevel_Code, Church_Level, Church_Code, A.HeadChurch_Code, Module_Code, SubModule_Code, Access_Type
+                    SELECT A.Usercode, D.Password, Email, Role_Code, A.Level_Code, F.Level_No, ChurchLevel_Code, Church_Level, Church_Code, Module_Code, SubModule_Code, Access_Type, G.First_Name, G.Last_Name, G.Title, G.Title2
                     FROM tblUserRole A
                     LEFT JOIN tblUserRoleSubModule B ON B.UserRole_Code = A.Code
                     LEFT JOIN dfSubModuleAccess C ON C.Code = B.SubModuleAccess_Code
                     LEFT JOIN tblUser D ON D.Usercode = A.Usercode
                     LEFT JOIN tblHeadChurchLevels E ON E.Level_Code = A.Level_Code
+                    LEFT JOIN dfHierarchy F ON F.Code = A.Level_Code
+                    LEFT JOIN tblMember G ON G.Code = A.Usercode
                     WHERE A.Is_Active=1 AND B.Is_Active=1 AND C.Is_Active=1
                         AND A.Usercode = :Usercode AND (A.Level_Code = :Level_Code OR E.ChurchLevel_Code = :ChurchLevel_Code);
                     """
@@ -255,7 +263,7 @@ class AuthService:
             ).all()
             if not user_access:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
+                    status_code=status.HTTP_403_FORBIDDEN,
                     detail="User access denied. Select a valid Church Level.",
                 )
             print("user access fetched")
@@ -264,4 +272,31 @@ class AuthService:
             db.rollback()
             print(err)
             print("user access not fetched")
+            raise err
+
+    def get_user_levels(self, username: str, db: Session):
+        try:
+            user_levels = db.execute(
+                text(
+                    """
+                    SELECT A.Level_Code, B.ChurchLevel_Code, B.Church_Level
+                    FROM tblUserRole A
+                    LEFT JOIN tblHeadChurchLevels B ON B.Level_Code = A.Level_Code AND B.Head_Code = A.HeadChurch_Code
+                    WHERE A.Is_Active=1 AND B.Is_Active
+                    AND Usercode = :Usercode;
+                    """
+                ),
+                dict(Usercode=username),
+            ).all()
+            if not user_levels:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="You don't have access to any Church Levels.",
+                )
+            print("user levels fetched")
+            return user_levels
+        except Exception as err:
+            db.rollback()
+            print(err)
+            print("user levels not fetched")
             raise err

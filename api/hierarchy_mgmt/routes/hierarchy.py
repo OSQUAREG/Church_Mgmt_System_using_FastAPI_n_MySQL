@@ -7,11 +7,7 @@ from ...common.database import get_db
 from ...common.dependencies import get_current_user, get_current_user_access
 from ...authentication.models.auth import User, UserAccess
 from ...hierarchy_mgmt.services.hierarchy import HierarchyService
-from ...hierarchy_mgmt.models.hierarchy import (
-    Hierarchy,
-    HierarchyResponse,
-    HierarchyUpdate,
-)
+from ...hierarchy_mgmt.models.hierarchy import HierarchyResponse, HierarchyUpdate
 
 hierarchy_router = APIRouter(prefix="/hierarchy", tags=["Hierarchy Operations"])
 
@@ -22,6 +18,7 @@ Hierarchy Routes
 - Activate Hierarchy by Code
 - Deactivate Hierarchy by Code
 - Update Hierarchy by Code
+
 """
 
 
