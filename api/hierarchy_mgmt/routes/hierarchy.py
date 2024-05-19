@@ -1,12 +1,11 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, status, Depends, Form  # type: ignore
-from sqlalchemy.orm import Session  # type: ignore
+from fastapi import APIRouter, status, Depends  # type: ignore
 
-from ...common.database import get_db
-from ...common.dependencies import get_current_user, get_current_user_access
-from ...authentication.models.auth import User, UserAccess
-from ...hierarchy_mgmt.services.hierarchy import HierarchyService
+from ...hierarchy_mgmt.services.hierarchy import (
+    HierarchyService,
+    get_hierarchy_services,
+)
 from ...hierarchy_mgmt.models.hierarchy import HierarchyResponse, HierarchyUpdate
 
 hierarchy_router = APIRouter(prefix="/hierarchy", tags=["Hierarchy Operations"])
@@ -18,7 +17,6 @@ Hierarchy Routes
 - Activate Hierarchy by Code
 - Deactivate Hierarchy by Code
 - Update Hierarchy by Code
-
 """
 
 
@@ -30,13 +28,10 @@ Hierarchy Routes
     response_model=HierarchyResponse,
 )
 async def get_all_hierarchies(
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
+    hierarchy_services: Annotated[HierarchyService, Depends(get_hierarchy_services)],
+    is_active: Optional[bool] = None,
 ):
-    hierarchies = await HierarchyService().get_all_hierarchies(
-        db, current_user, current_user_access
-    )
+    hierarchies = await hierarchy_services.get_all_hierarchies(is_active)
     # set response body
     response = dict(
         data=hierarchies,
@@ -55,13 +50,9 @@ async def get_all_hierarchies(
 )
 async def get_hierarchy_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
+    hierarchy_services: Annotated[HierarchyService, Depends(get_hierarchy_services)],
 ):
-    hierarchy = await HierarchyService().get_hierarchy_by_code(
-        code, db, current_user, current_user_access
-    )
+    hierarchy = await hierarchy_services.get_hierarchy_by_code(code)
     # set response body
     response = dict(
         data=hierarchy,
@@ -80,13 +71,9 @@ async def get_hierarchy_by_code(
 )
 async def activate_hierarchy_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
+    hierarchy_services: Annotated[HierarchyService, Depends(get_hierarchy_services)],
 ):
-    activated_hierarchy = await HierarchyService().activate_hierarchy_by_code(
-        code, db, current_user, current_user_access
-    )
+    activated_hierarchy = await hierarchy_services.activate_hierarchy_by_code(code)
     print(activated_hierarchy)
     # set response body
     response = dict(
@@ -106,13 +93,9 @@ async def activate_hierarchy_by_code(
 )
 async def deactivate_hierarchy_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
+    hierarchy_services: Annotated[HierarchyService, Depends(get_hierarchy_services)],
 ):
-    deactivated_hierarchy = await HierarchyService().deactivate_hierarchy_by_code(
-        code, db, current_user, current_user_access
-    )
+    deactivated_hierarchy = await hierarchy_services.deactivate_hierarchy_by_code(code)
     # set response body
     response = dict(
         data=deactivated_hierarchy,
@@ -132,12 +115,10 @@ async def deactivate_hierarchy_by_code(
 async def update_hierarchy_by_code(
     code: str,
     hierarchy: HierarchyUpdate,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
+    hierarchy_services: Annotated[HierarchyService, Depends(get_hierarchy_services)],
 ):
-    updated_hierarchy = await HierarchyService().update_hierarchy_by_code(
-        code, hierarchy, db, current_user, current_user_access
+    updated_hierarchy = await hierarchy_services.update_hierarchy_by_code(
+        code, hierarchy
     )
     # set response body
     response = dict(

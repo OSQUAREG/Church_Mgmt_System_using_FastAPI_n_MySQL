@@ -1,5 +1,4 @@
-from typing import Optional
-from ..check import User
+from typing import Annotated, Optional
 from ..authentication.models.auth import UserAccess
 from fastapi import HTTPException, status  # type: ignore
 from phonenumbers import format_number, PhoneNumberFormat, parse  # type: ignore
@@ -26,17 +25,26 @@ def check_if_new_code_exist(code: str, table_name: str, db: Session):
 
 
 def check_if_new_name_exist(
-    name: str, headchurch_code: str, table_name: str, db: Session
+    name: str,
+    table_name: str,
+    db: Session,
+    headchurch_code: Optional[str] = None,
 ):
-    name_check = db.execute(
-        text(
-            f"""
-            SELECT * FROM {table_name} 
-            WHERE Name = :Name AND HeadChurch_Code = :HeadChurch_Code;
-            """
-        ),
-        dict(Name=name, HeadChurch_Code=headchurch_code),
-    ).first()
+    if headchurch_code:
+        name_check = db.execute(
+            text(
+                f"""
+                SELECT * FROM {table_name} 
+                WHERE Name = :Name AND HeadChurch_Code = :HeadChurch_Code;
+                """
+            ),
+            dict(Name=name, HeadChurch_Code=headchurch_code),
+        ).first()
+    else:
+        name_check = db.execute(
+            text(f"SELECT * FROM {table_name} WHERE Name = :Name;"),
+            dict(Name=name),
+        ).first()
     db_name = custom_title_case(name_check.Name) if name_check else None
     check_name = custom_title_case(name)
     if name_check and (db_name != check_name):
@@ -101,7 +109,7 @@ def get_level_no(level_code: str, head_code: str, db: Session):
         text(
             """
             SELECT B.Level_No FROM tblHeadChurchLevels  A
-            LEFT JOIN dfHierarchy B ON A.Code = B.Level_Code
+            LEFT JOIN dfHierarchy B ON B.Code = A.Level_Code
             WHERE Level_Code = :Code AND Head_Code = :Head_Code AND A.Is_Active = :Is_Active;
             """
         ),
@@ -113,3 +121,21 @@ def get_level_no(level_code: str, head_code: str, db: Session):
             detail="Church Level is not active",
         )
     return level_no
+
+
+def check_code_list(code: str, category: str, db: Session):
+    code_list = db.execute(
+        text(
+            """
+            SELECT Code, Name FROM dfCodeTable 
+            WHERE Code = :Code AND Category = :Category AND Is_Active = :Active;
+            """
+        ),
+        dict(Code=code, Category=category, Active=1),
+    ).all()
+    if code_list is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"{code} is an invalid {category} ",
+        )
+    return code_list

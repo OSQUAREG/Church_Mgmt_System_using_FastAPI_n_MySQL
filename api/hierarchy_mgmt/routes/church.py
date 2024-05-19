@@ -1,12 +1,8 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, status, Depends, Form  # type: ignore
-from sqlalchemy.orm import Session  # type: ignore
 
-from ...authentication.models.auth import User
-from ...common.database import get_db
-from ...common.dependencies import get_current_user, get_current_user_access
-from ...hierarchy_mgmt.services import ChurchServices
+from ...hierarchy_mgmt.services import ChurchServices, get_church_services
 from ...hierarchy_mgmt.models.church import ChurchBase, ChurchResponse, ChurchUpdate
 
 
@@ -35,13 +31,9 @@ church_router = APIRouter(prefix=f"/church", tags=["Church Operations"])
 async def create_new_church(
     level_code: str,
     church: ChurchBase,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
 ):
-    new_church = await ChurchServices().create_new_church(
-        level_code, church, db, current_user, current_user_access
-    )
+    new_church = await church_services.create_new_church(level_code, church)
     # set response body
     response = dict(
         data=new_church,
@@ -60,13 +52,9 @@ async def create_new_church(
 )
 async def approve_church_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
 ):
-    approved_church = await ChurchServices().approve_church_by_code(
-        code, db, current_user, current_user_access
-    )
+    approved_church = await church_services.approve_church_by_code(code)
     # set response body
     response = dict(
         data=approved_church,
@@ -84,13 +72,10 @@ async def approve_church_by_code(
     response_model=ChurchResponse,
 )
 async def get_all_churches(
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
+    status_code: Optional[str] = None,
 ):
-    churches = await ChurchServices().get_all_churches(
-        db, current_user, current_user_access
-    )
+    churches = await church_services.get_all_churches(status_code)
     # set response body
     response = dict(
         data=churches,
@@ -109,13 +94,10 @@ async def get_all_churches(
 )
 async def get_churches_by_level(
     level_code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
+    is_active: Optional[bool] = None,
 ):
-    churches = await ChurchServices().get_churches_by_level(
-        level_code, db, current_user, current_user_access
-    )
+    churches = await church_services.get_churches_by_level(level_code, is_active)
     # set response body
     response = dict(
         data=churches,
@@ -133,13 +115,9 @@ async def get_churches_by_level(
 )
 async def get_church_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
 ):
-    church = await ChurchServices().get_church_by_code(
-        code, db, current_user, current_user_access
-    )
+    church = await church_services.get_church_by_code(code)
     # set response body
     response = dict(
         data=church,
@@ -159,13 +137,9 @@ async def get_church_by_code(
 async def update_church_by_code(
     code: str,
     church: ChurchUpdate,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
 ):
-    updated_church = await ChurchServices().update_church_by_code(
-        code, church, db, current_user, current_user_access
-    )
+    updated_church = await church_services.update_church_by_code(code, church)
     # set response body
     response = dict(
         data=updated_church,
@@ -184,13 +158,9 @@ async def update_church_by_code(
 )
 async def activate_church_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
 ):
-    activated_church = await ChurchServices().activate_church_by_code(
-        code, db, current_user, current_user_access
-    )
+    activated_church = await church_services.activate_church_by_code(code)
     # set response body
     response = dict(
         data=activated_church,
@@ -209,13 +179,9 @@ async def activate_church_by_code(
 )
 async def deactivate_church_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
 ):
-    deactivated_church = await ChurchServices().deactivate_church_by_code(
-        code, db, current_user, current_user_access
-    )
+    deactivated_church = await church_services.deactivate_church_by_code(code)
     # set response body
     response = dict(
         data=deactivated_church,

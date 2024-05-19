@@ -4,7 +4,7 @@ description = """
 The Church Management System (ChMS) is an application that helps in managing of Church members, groups, events, assets, mass communication and finances (tithes, offerings, donations, seeds etc).
 
 ## Modules
-* **Hierarchy Management** (_in progress_) - this includes Hierarchy, Head Church, Province, Zone, Area, Branch and Groups.
+* **Church Administration** (_in progress_) - this includes Church Hierarchy, Head Church, Churches at different levels, Church Leads, Branch and Groups.
 
 * **Members Management** (_in progress_) - this includes Members, Position, Church Position, Member Position.
 
@@ -40,6 +40,7 @@ tags_metadata = [
         "name": "Authentication Operations",
         "description": "Operations on User Authentications",
     },
+    ## Church Administration Module
     # Hierarchy Module Sub Module
     {
         "name": "Hierarchy Operations",

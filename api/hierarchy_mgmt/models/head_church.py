@@ -11,7 +11,7 @@ class HeadChurchCode(BaseModel):
     Code: str = Field(examples=["TEST"], max_length=4)
 
     @validator("Code")
-    def uppercase_code(cls, v):
+    def upper_case_strings(cls, v):
         return v.upper() if v else None
 
 
@@ -42,11 +42,6 @@ class HeadChurchBase(BaseModel):
     State_Code: str = Field(max_length=4)
     Region_Code: str = Field(max_length=4)
     Country_Code: str = Field(max_length=4)
-    Is_Active: Optional[bool] = True
-    Created_Date: Optional[datetime] = None
-    Created_By: Optional[str] = None
-    Modified_Date: Optional[datetime] = None
-    Modified_By: Optional[str] = None
 
     @validator("Name", "Alt_Name", "Address")
     def title_case_strings(cls, v):
@@ -62,7 +57,11 @@ class HeadChurchBase(BaseModel):
 
 
 class HeadChurch(HeadChurchBase, HeadChurchCode):
-    pass
+    Is_Active: Optional[bool] = True
+    Created_Date: Optional[datetime] = None
+    Created_By: Optional[str] = None
+    Modified_Date: Optional[datetime] = None
+    Modified_By: Optional[str] = None
 
 
 class HeadChurchResponse(BaseModel):
@@ -102,11 +101,6 @@ class HeadChurchUpdate(BaseModel):
     State_Code: str = Field(default=None, max_length=4)
     Region_Code: str = Field(default=None, max_length=4)
     Country_Code: str = Field(default=None, max_length=4)
-    Is_Active: Optional[bool] = None
-    Created_Date: Optional[datetime] = None
-    Created_By: Optional[str] = None
-    Modified_Date: Optional[datetime] = None
-    Modified_By: Optional[str] = None
 
     @validator("Name", "Alt_Name", "Address")
     def title_case_strings(cls, v):
@@ -125,7 +119,7 @@ class HeadChurchCodeUpdate(BaseModel):
     Code: str = Field(default=None, examples=["TEST"], max_length=4)
 
     @validator("Code")
-    def uppercase_string(cls, v):
+    def upper_case_strings(cls, v):
         return v.upper() if v else None
 
 
@@ -137,7 +131,7 @@ class ChurchCode(BaseModel):
     Code: str = Field(default=None, examples=["TEST-AAA-000000000"], max_length=18)
 
     @validator("Code")
-    def uppercase_code(cls, v):
+    def upper_case_strings(cls, v):
         return v.upper() if v else None
 
 

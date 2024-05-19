@@ -1,15 +1,13 @@
-from http.client import HTTPException
 from typing import Annotated
 
 from fastapi import APIRouter, status, Depends  # type: ignore
-from sqlalchemy.orm import Session  # type: ignore
 
-from ...authentication.models.auth import User, UserAccess
-from ...common.database import get_db
-from ...common.dependencies import get_current_user, get_current_user_access
-from ...hierarchy_mgmt.services.head_church import HeadChurchServices
+from ...hierarchy_mgmt.services.head_church import (
+    HeadChurchServices,
+    get_head_church_services,
+)
 from ...hierarchy_mgmt.models.head_church import (
-    HeadChurchBase,
+    HeadChurch,
     HeadChurchResponse,
     HeadChurchUpdateIn,
 )
@@ -43,10 +41,12 @@ Head Church Admin Routes
     response_model=HeadChurchResponse,
 )
 async def create_new_head_church(
-    head_church: HeadChurchBase,
-    db: Annotated[Session, Depends(get_db)],
+    head_church: HeadChurch,
+    head_church_services: Annotated[
+        HeadChurchServices, Depends(get_head_church_services)
+    ],
 ):
-    new_head_church = await HeadChurchServices().create_head_church(head_church, db)
+    new_head_church = await head_church_services.create_head_church(head_church)
     # set response body
     response = dict(
         data=new_head_church,
@@ -65,13 +65,11 @@ async def create_new_head_church(
 )
 async def get_head_church_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
+    head_church_services: Annotated[
+        HeadChurchServices, Depends(get_head_church_services)
+    ],
 ):
-    head_church = await HeadChurchServices().get_head_church_by_code(
-        code, db, current_user, current_user_access
-    )
+    head_church = await head_church_services.get_head_church_by_code(code)
     # set response body
     response = dict(
         data=head_church,
@@ -91,12 +89,12 @@ async def get_head_church_by_code(
 async def update_head_church_by_code(
     code: str,
     head_church: HeadChurchUpdateIn,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
+    head_church_services: Annotated[
+        HeadChurchServices, Depends(get_head_church_services)
+    ],
 ):
-    updated_head_church = await HeadChurchServices().update_head_church_by_code(
-        code, head_church, db, current_user, current_user_access
+    updated_head_church = await head_church_services.update_head_church_by_code(
+        code, head_church
     )
     # set response body
     response = dict(
@@ -116,12 +114,12 @@ async def update_head_church_by_code(
 )
 async def activate_head_church_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
+    head_church_services: Annotated[
+        HeadChurchServices, Depends(get_head_church_services)
+    ],
 ):
-    activated_head_church = await HeadChurchServices().activate_head_church_by_code(
-        code, db, current_user, current_user_access
+    activated_head_church = await head_church_services.activate_head_church_by_code(
+        code
     )
     # set response body
     response = dict(
@@ -141,12 +139,12 @@ async def activate_head_church_by_code(
 )
 async def deactivate_head_church_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
+    head_church_services: Annotated[
+        HeadChurchServices, Depends(get_head_church_services)
+    ],
 ):
-    deactivated_head_church = await HeadChurchServices().deactivate_head_church_by_code(
-        code, db, current_user, current_user_access
+    deactivated_head_church = await head_church_services.deactivate_head_church_by_code(
+        code
     )
     # set response body
     response = dict(

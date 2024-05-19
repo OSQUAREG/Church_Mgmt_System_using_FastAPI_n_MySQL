@@ -37,6 +37,10 @@ class UserLevel(BaseModel):
     Level_Code: str
     ChurchLevel_Code: Optional[str] = None
     HeadChurch_Code: str
+    Title: Optional[str] = None
+    Titl2: Optional[str] = None
+    First_Name: Optional[str] = None
+    Last_Name: Optional[str] = None
 
 
 class TokenLevelResponse(BaseModel):

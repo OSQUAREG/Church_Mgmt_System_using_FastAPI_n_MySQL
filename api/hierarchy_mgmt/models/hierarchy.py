@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field  # type: ignore
-from pydantic_extra_types.phone_numbers import PhoneNumber  # type: ignore
 from typing import Optional, Union
+
+from pydantic import BaseModel, Field, validator  # type: ignore
+
+from ...common.utils import custom_title_case
 
 
 class Hierarchy(BaseModel):
@@ -22,3 +24,11 @@ class HierarchyUpdate(BaseModel):
     Church_Level: Optional[str] = None
     ChurchLevel_Code: Optional[str] = None
     Is_Active: Optional[bool] = True
+
+    @validator("Church_Level")
+    def title_case_strings(cls, v):
+        return custom_title_case(v) if v else None
+
+    @validator("ChurchLevel_Code")
+    def upper_case_strings(cls, v):
+        return v.upper() if v else None

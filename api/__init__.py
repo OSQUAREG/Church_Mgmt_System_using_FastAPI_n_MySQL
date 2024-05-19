@@ -1,9 +1,9 @@
-# !/Users/gregory.ogbemudia/AppData/Local/Programs/Python/Python312/python.exe
 from fastapi import FastAPI, Request  # , HTTPException, status, Depends  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
 from fastapi.responses import HTMLResponse  # type: ignore
 from fastapi.staticfiles import StaticFiles  # type: ignore
 from fastapi.templating import Jinja2Templates  # type: ignore
+from sqlalchemy.orm import Session  # type: ignore
 
 from .authentication.routes import auth_router
 from .hierarchy_mgmt.routes import (
@@ -23,6 +23,9 @@ from .swagger_doc import (
     version,
 )
 
+# from save_openapi_json import save_openapi_spec
+from .common.database import create_audit_log_triggers, get_db
+
 
 # Define CORS policy
 origins = [
@@ -33,6 +36,9 @@ origins = [
 
 
 def create_app():
+    # Create Database Triggers for Audit Logs
+    # create_audit_log_triggers()
+
     # Init app
     app = FastAPI(
         title=title,
@@ -92,6 +98,13 @@ def create_app():
 
     #     os.kill(os.getpid(), signal.SIGINT)
     #     return {"message": "Server shutting down..."}
+
+    # # URL of the OpenAPI JSON specification
+    # url = "http://127.0.0.1:8000/openapi.json"
+    # # Output file to save the JSON data
+    # output_file = "openapi.json"
+    # # Save the OpenAPI specification
+    # save_openapi_spec(url, output_file)
 
     return app
 

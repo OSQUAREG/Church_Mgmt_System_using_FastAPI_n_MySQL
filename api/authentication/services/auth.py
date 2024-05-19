@@ -38,6 +38,7 @@ class AuthService:
     - Re-Authenticate User Access
     - Re-verify Access Token
     - Get User Access
+
     """
 
     # Hash Password
@@ -53,12 +54,14 @@ class AuthService:
             user = db.execute(
                 text(
                     """
-                    SELECT A.Usercode, A.Email, A.HeadChurch_Code, A.Is_Active, B.Title, B.Titl2, B.First_Name, B.Last_Name FROM tblUser A
+                    SELECT A.Usercode, A.Password, A.Email, A.HeadChurch_Code, A.Is_Active, B.Title, B.Title2, B.First_Name, B.Last_Name FROM tblUser A
                     LEFT JOIN tblMember B ON B.Code = A.Usercode
                     WHERE Usercode = :Usercode;
                     """
                 ),
-                dict(Usercode=username),
+                dict(
+                    Usercode=username,
+                ),
             ).first()
             if not user:
                 raise HTTPException(
@@ -134,10 +137,11 @@ class AuthService:
             user_level = db.execute(
                 text(
                     """
-                    SELECT DISTINCT A.Usercode, Password, Email, A.Level_Code, C.ChurchLevel_Code, A.HeadChurch_Code
+                    SELECT DISTINCT A.Usercode, Password, Email, A.Level_Code, C.ChurchLevel_Code, A.HeadChurch_Code, D.Title, D.Title2, D.First_Name, D.Last_Name
                     FROM tblUserRole A
                     LEFT JOIN tblUser B ON B.Usercode = A.Usercode
                     LEFT JOIN tblHeadChurchLevels C ON C.Level_Code = A.Level_Code AND C.Head_Code = A.HeadChurch_Code
+                    LEFT JOIN tblMember D ON D.Code = A.Usercode
                     WHERE A.Is_Active=1 AND B.Is_Active=1
                         AND A.Usercode = :Usercode AND (A.Level_Code = :Level_Code OR C.ChurchLevel_Code = :ChurchLevel_Code);
                     """
@@ -173,7 +177,7 @@ class AuthService:
             if church_level is None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail=f"Oops! Please select a valid Church Level",
+                    detail=f"Oops! Please re-login and select a valid Church Level",
                 )
             # fetch user church level list from db
             user_church_level_list = db.execute(
@@ -243,7 +247,7 @@ class AuthService:
             user_access = db.execute(
                 text(
                     """
-                    SELECT A.Usercode, D.Password, Email, Role_Code, A.Level_Code, F.Level_No, ChurchLevel_Code, Church_Level, Church_Code, Module_Code, SubModule_Code, Access_Type, G.First_Name, G.Last_Name, G.Title, G.Title2
+                    SELECT A.Usercode, D.Password, Email, Role_Code, A.Level_Code, F.Level_No, ChurchLevel_Code, Church_Level, Church_Code, Module_Code, SubModule_Code, Access_Type, A.HeadChurch_Code, G.First_Name, G.Last_Name, G.Title, G.Title2
                     FROM tblUserRole A
                     LEFT JOIN tblUserRoleSubModule B ON B.UserRole_Code = A.Code
                     LEFT JOIN dfSubModuleAccess C ON C.Code = B.SubModuleAccess_Code

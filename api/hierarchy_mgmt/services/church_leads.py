@@ -1,11 +1,18 @@
 from datetime import datetime
+from typing import Annotated, Optional
 
-from fastapi import HTTPException, status  # type: ignore
+from fastapi import HTTPException, status, Depends  # type: ignore
 from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
-from ...hierarchy_mgmt.services.church import ChurchServices
+from ...hierarchy_mgmt.services.church import ChurchServices, get_church_services
 from ...authentication.models.auth import User, UserAccess
+from ...common.database import get_db
+from ...common.dependencies import (
+    get_current_user,
+    get_current_user_access,
+    set_db_current_user,
+)
 from ...common.utils import get_level_no, set_user_access
 
 
@@ -18,18 +25,24 @@ class ChurchLeadsServices:
     - Get Churches by Lead Code
     """
 
-    async def get_church_leads_by_code(
+    def __init__(
         self,
-        code: str,
         db: Session,
         current_user: User,
         current_user_access: UserAccess,
+        church_services: Annotated[ChurchServices, Depends(get_church_services)],
+    ):
+        self.db = db
+        self.current_user = current_user
+        self.current_user_access = current_user_access
+        self.church_services = church_services
+
+    async def get_church_leads_by_code(
+        self, code: str, is_active: Optional[bool] = None
     ):
         try:
             # fetch church data
-            church = await ChurchServices().get_church_by_code(
-                code, db, current_user, current_user_access
-            )
+            church = await self.church_services.get_church_by_code(code)
             # check if church is active/approved
             if not church.Is_Active and church.Status != "APR":
                 raise HTTPException(
@@ -37,41 +50,51 @@ class ChurchLeadsServices:
                     detail=f"Church: {church.Name} is not active/approved.",
                 )
             set_user_access(
-                current_user_access,
-                headchurch_code=current_user.HeadChurch_Code,
+                self.current_user_access,
+                headchurch_code=self.current_user.HeadChurch_Code,
                 # role_code=["ADM", "SAD"],
                 # level_code=["CHU", "CL1"],
                 module_code=["HRCH"],
                 # submodule_code=["HEAD", "CL1"],
                 access_type=["VW"],
             )
-            church_leads = db.execute(
-                text(
-                    """
+            church_leads = (
+                self.db.execute(
+                    text(
+                        """
                     SELECT Church_Code, Level_Code, LeadChurch_Code, LeadChurch_Level, Is_Active, Start_Date, End_Date, HeadChurch_Code, Created_Date, Created_By, Modified_Date, Modified_By, `Status`, Status_By, Status_Date
                     FROM tblChurchLeads 
                     WHERE Code = :Code AND HeadChurch_Code = :HeadChurch_Code
                     ORDER BY Start_Date DESC;
                     """
-                ),
-                dict(Code=code, HeadChurch_Code=current_user.HeadChurch_Code),
-            ).all()
+                    ),
+                    dict(Code=code, HeadChurch_Code=self.current_user.HeadChurch_Code),
+                ).all()
+                if is_active is None
+                else self.db.execute(
+                    text(
+                        """
+                    SELECT Church_Code, Level_Code, LeadChurch_Code, LeadChurch_Level, Is_Active, Start_Date, End_Date, HeadChurch_Code, Created_Date, Created_By, Modified_Date, Modified_By, `Status`, Status_By, Status_Date
+                    FROM tblChurchLeads 
+                    WHERE Code = :Code AND HeadChurch_Code = :HeadChurch_Code AND A.Is_Active = :Is_Active
+                    ORDER BY Start_Date DESC;
+                    """
+                    ),
+                    dict(
+                        Code=code,
+                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Is_Active=is_active,
+                    ),
+                ).all()
+            )
             return church_leads
         except Exception as err:
             raise err
 
-    async def unmap_church_leads_by_code(
-        self,
-        church_code: str,
-        db: Session,
-        current_user: User,
-        current_user_access: UserAccess,
-    ):
+    async def unmap_church_leads_by_code(self, church_code: str):
         try:
             # fetch church data
-            church = await ChurchServices().get_church_by_code(
-                church_code, db, current_user, current_user_access
-            )
+            church = await self.church_services.get_church_by_code(church_code)
             # check if church is active/approved
             if not church.Is_Active and church.Status != "APR":
                 raise HTTPException(
@@ -79,11 +102,13 @@ class ChurchLeadsServices:
                     detail=f"Church: {church.Name} is not active/approved.",
                 )
             # get church level no
-            level_no = get_level_no(church.Level_Code, current_user.HeadChurch_Code, db)
+            level_no = get_level_no(
+                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+            )
             # set user access
             set_user_access(
-                current_user_access,
-                headchurch_code=current_user.HeadChurch_Code,
+                self.current_user_access,
+                headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 # level_code=["CHU"],
                 level_no=level_no - 1,
@@ -92,7 +117,7 @@ class ChurchLeadsServices:
                 access_type=["ED", "VW"],
             )
             # ummap church from any active church lead
-            db.execute(
+            self.db.execute(
                 text(
                     """
                     UPDATE tblChurches 
@@ -103,42 +128,29 @@ class ChurchLeadsServices:
                 dict(
                     End_Date=datetime.now(),
                     Is_Active=0,
-                    Modified_By=current_user.Usercode,
+                    Modified_By=self.current_user.Usercode,
                     Status="INA",
-                    Status_By=current_user.Usercode,
+                    Status_By=self.current_user.Usercode,
                     Status_Date=datetime.now(),
                     Code=church_code,
                 ),
             )
-            db.commit()
-            return await self.get_church_leads_by_code(
-                church_code, db, current_user, current_user_access
-            )
+            self.db.commit()
+            return await self.get_church_leads_by_code(church_code)
         except Exception as err:
-            db.rollback()
+            self.db.rollback()
             raise err
 
-    async def map_church_lead_by_code(
-        self,
-        church_code: str,
-        lead_church_code: str,
-        db: Session,
-        current_user: User,
-        current_user_access: UserAccess,
-    ):
+    async def map_church_lead_by_code(self, church_code: str, lead_church_code: str):
         try:
             # fetch church data
-            church = await ChurchServices().get_church_by_code(
-                church_code, db, current_user, current_user_access
-            )
+            church = await self.church_services.get_church_by_code(church_code)
             # fetch lead church data
-            lead_church = await ChurchServices().get_church_by_code(
-                lead_church_code, db, current_user, current_user_access
+            lead_church = await self.church_services.get_church_by_code(
+                lead_church_code
             )
             # fetch church leads
-            church_leads = await self.get_church_leads_by_code(
-                church_code, db, current_user, current_user_access
-            )
+            church_leads = await self.get_church_leads_by_code(church_code)
             # check if church is active/approved
             if not church.Is_Active and church.Status != "APR":
                 raise HTTPException(
@@ -163,11 +175,13 @@ class ChurchLeadsServices:
                         detail=f"Church: '{church.Name}' is currently mapped to selected Lead Church: '{lead_church.Name}'.",
                     )
             # get church level no
-            level_no = get_level_no(church.Level_Code, current_user.HeadChurch_Code, db)
+            level_no = get_level_no(
+                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+            )
             # set user access
             set_user_access(
-                current_user_access,
-                headchurch_code=current_user.HeadChurch_Code,
+                self.current_user_access,
+                headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 # level_code=["CHU"],
                 level_no=level_no - 1,
@@ -177,10 +191,10 @@ class ChurchLeadsServices:
             )
             # unmap any current church leads
             await self.unmap_church_leads_by_code(
-                church_code, db, current_user, current_user_access
+                church_code,
             )
             # assign church leads
-            db.execute(
+            self.db.execute(
                 text(
                     """
                     INSERT INTO tblChurchLeads
@@ -195,39 +209,27 @@ class ChurchLeadsServices:
                     LeadChurch_Code=lead_church.Code,
                     LeadChurch_Level=lead_church.Level_Code,
                     Start_Date=datetime.now(),
-                    HeadChurch_Code=current_user.HeadChurch_Code,
-                    Created_By=current_user.Usercode,
+                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Created_By=self.current_user.Usercode,
                 ),
             )
-            db.commit()
-            return await self.get_church_leads_by_code(
-                church_code, db, current_user, current_user_access
-            )
+            self.db.commit()
+            new_church_lead = await self.db.execute(
+                text("SELECT * FROM tblChurchLeads WHERE Id = LAST_INSERT_ID();")
+            ).first()
+            return new_church_lead
         except Exception as err:
-            db.rollback()
+            self.db.rollback()
             raise err
 
-    async def approve_church_lead_by_code(
-        self,
-        church_code: str,
-        leadchurch_code: str,
-        db: Session,
-        current_user: User,
-        current_user_access: UserAccess,
-    ):
+    async def approve_church_lead_by_code(self, church_code: str, leadchurch_code: str):
         try:
             # fetch church data
-            church = await ChurchServices().get_church_by_code(
-                church_code, db, current_user, current_user_access
-            )
+            church = await self.church_services.get_church_by_code(church_code)
             # fetch lead church data
-            lead_church = await ChurchServices().get_church_by_code(
-                leadchurch_code, db, current_user, current_user_access
-            )
+            lead_church = await self.church_services.get_church_by_code(leadchurch_code)
             # fetch church leads
-            church_leads = await self.get_church_leads_by_code(
-                church_code, db, current_user, current_user_access
-            )
+            church_leads = await self.get_church_leads_by_code(church_code)
             # check if church lead is active or already approved
             for church_lead in church_leads:
                 if (
@@ -251,11 +253,13 @@ class ChurchLeadsServices:
                     detail=f"Church Lead mapping is not active.",
                 )
             # get church level no
-            level_no = get_level_no(church.Level_Code, current_user.HeadChurch_Code, db)
+            level_no = get_level_no(
+                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+            )
             # set user access
             set_user_access(
-                current_user_access,
-                headchurch_code=current_user.HeadChurch_Code,
+                self.current_user_access,
+                headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 # level_code=["CHU"],
                 level_no=level_no - 1,
@@ -264,7 +268,7 @@ class ChurchLeadsServices:
                 access_type=["ED"],
             )
             # approve church leads
-            db.execute(
+            self.db.execute(
                 text(
                     """
                     UPDATE tblChurchLeads
@@ -278,57 +282,76 @@ class ChurchLeadsServices:
                 dict(
                     Status="APR",
                     Status_Date=datetime.now(),
-                    Status_By=current_user.Usercode,
-                    Modified_By=current_user.Usercode,
+                    Status_By=self.current_user.Usercode,
+                    Modified_By=self.current_user.Usercode,
                     Church_Code=church.Code,
                     LeadChurch_Code=lead_church.Code,
-                    HeadChurch_Code=current_user.HeadChurch_Code,
+                    HeadChurch_Code=self.current_user.HeadChurch_Code,
                     Is_Active=1,
                 ),
             )
-            db.commit()
-            return await self.get_church_leads_by_code(
-                church.Code, db, current_user, current_user_access
-            )
+            self.db.commit()
+            return await self.get_church_leads_by_code(church.Code)
         except Exception as err:
-            db.rollback()
+            self.db.rollback()
             raise err
 
     async def get_all_churches_by_lead_code(
-        self,
-        leadchurch_code: str,
-        db: Session,
-        current_user: User,
-        current_user_access: UserAccess,
+        self, leadchurch_code: str, is_active: Optional[bool] = None
     ):
         try:
             set_user_access(
-                current_user_access,
-                headchurch_code=current_user.HeadChurch_Code,
+                self.current_user_access,
+                headchurch_code=self.current_user.HeadChurch_Code,
                 # role_code=["ADM", "SAD"],
                 # level_code=["CHU"],
                 module_code=["HRCH"],
                 # submodule_code=["HEAD", "CL1"],
                 access_type=["VW"],
             )
-            lead_church = await ChurchServices().get_church_by_code(
-                leadchurch_code, db, current_user, current_user_access
-            )
-            churches = db.execute(
-                text(
-                    """
-                    SELECT LeadChurch_Code, B.*
-                    FROM tblChurchLeads A
+            lead_church = await self.church_services.get_church_by_code(leadchurch_code)
+            churches = (
+                self.db.execute(
+                    text(
+                        """
+                    SELECT LeadChurch_Code, B.* FROM tblChurchLeads A
                     LEFT JOIN tblChurches B ON B.Code = A.Church_Code
                     WHERE LeadChurch_Code = :LeadChurch_Code
                         AND HeadChurch_Code = :HeadChurch_Code;
                     """
-                ),
-                dict(
-                    LeadChurch_Code=lead_church.Code,
-                    HeadChurch_Code=current_user.HeadChurch_Code,
-                ),
+                    ),
+                    dict(
+                        LeadChurch_Code=lead_church.Code,
+                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    ),
+                ).all()
+                if is_active is None
+                else self.db.execute(
+                    text(
+                        """
+                    SELECT LeadChurch_Code, B.* FROM tblChurchLeads A
+                    LEFT JOIN tblChurches B ON B.Code = A.Church_Code
+                    WHERE LeadChurch_Code = :LeadChurch_Code
+                        AND HeadChurch_Code = :HeadChurch_Code AND Is_Active = :Is_Active;
+                    """
+                    ),
+                    dict(
+                        LeadChurch_Code=lead_church.Code,
+                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Is_Active=is_active,
+                    ),
+                ).all()
             )
             return churches
         except Exception as err:
             raise err
+
+
+def get_church_lead_services(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    current_user_access: Annotated[UserAccess, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
+    db_current_user: Annotated[str, Depends(set_db_current_user)],
+):
+    return ChurchLeadsServices(db, current_user, current_user_access, church_services)

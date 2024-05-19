@@ -1,12 +1,13 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, status, Depends, Form  # type: ignore
-from sqlalchemy.orm import Session  # type: ignore
 
-from ...authentication.models.auth import User
-from ...common.database import get_db
-from ...common.dependencies import get_current_user, get_current_user_access
-from ...hierarchy_mgmt.services import ChurchServices, ChurchLeadsServices
+from ...hierarchy_mgmt.services import (
+    ChurchServices,
+    ChurchLeadsServices,
+    get_church_services,
+    get_church_lead_services,
+)
 from ...hierarchy_mgmt.models.church_leads import ChurchLeadsResponse
 
 
@@ -30,15 +31,14 @@ churchleads_router = APIRouter(
     name="Get Church Lead",
     response_model=ChurchLeadsResponse,
 )
-async def get_church_lead_by_code(
+async def get_church_leads_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_lead_services: Annotated[
+        ChurchLeadsServices, Depends(get_church_lead_services)
+    ],
+    is_active: Optional[bool] = None,
 ):
-    church_lead = await ChurchLeadsServices().get_church_leads_by_code(
-        code, db, current_user, current_user_access
-    )
+    church_lead = await church_lead_services.get_church_leads_by_code(code, is_active)
     # set response body
     response = dict(
         data=church_lead,
@@ -57,16 +57,13 @@ async def get_church_lead_by_code(
 )
 async def unmap_church_lead_by_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
+    church_lead_services: Annotated[
+        ChurchLeadsServices, Depends(get_church_lead_services)
+    ],
 ):
-    church = await ChurchServices().get_church_by_code(
-        code, db, current_user, current_user_access
-    )
-    unmap_church_lead = await ChurchLeadsServices().unmap_church_leads_by_code(
-        code, db, current_user, current_user_access
-    )
+    church = await church_services.get_church_by_code(code)
+    unmap_church_lead = await church_lead_services.unmap_church_leads_by_code(code)
     # set response body
     response = dict(
         data=unmap_church_lead,
@@ -86,15 +83,14 @@ async def unmap_church_lead_by_code(
 async def map_church_lead_by_code(
     code: Annotated[str, Form],
     lead_code: Annotated[str, Form],
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
+    church_lead_services: Annotated[
+        ChurchLeadsServices, Depends(get_church_lead_services)
+    ],
 ):
-    church = await ChurchServices().get_church_by_code(
-        code, db, current_user, current_user_access
-    )
-    mapped_church_lead = await ChurchLeadsServices().map_church_lead_by_code(
-        code, lead_code, db, current_user, current_user_access
+    church = await church_services.get_church_by_code(code)
+    mapped_church_lead = await church_lead_services.map_church_lead_by_code(
+        code, lead_code
     )
     # set response body
     response = dict(
@@ -115,12 +111,12 @@ async def map_church_lead_by_code(
 async def approve_church_lead_by_code(
     code: Annotated[str, Form],
     lead_code: Annotated[str, Form],
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_lead_services: Annotated[
+        ChurchLeadsServices, Depends(get_church_lead_services)
+    ],
 ):
-    approved_church_lead = await ChurchLeadsServices().approve_church_lead_by_code(
-        code, lead_code, db, current_user, current_user_access
+    approved_church_lead = await church_lead_services.approve_church_lead_by_code(
+        code, lead_code
     )
     # set response body
     response = dict(
@@ -140,16 +136,14 @@ async def approve_church_lead_by_code(
 )
 async def get_all_churches_by_lead_code(
     code: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    current_user_access: Annotated[User, Depends(get_current_user_access)],
+    church_services: Annotated[ChurchServices, Depends(get_church_services)],
+    church_lead_services: Annotated[
+        ChurchLeadsServices, Depends(get_church_lead_services)
+    ],
+    is_active: Optional[bool] = None,
 ):
-    lead_church = await ChurchServices().get_church_by_code(
-        code, db, current_user, current_user_access
-    )
-    churches = await ChurchLeadsServices().get_all_churches_by_lead_code(
-        code, db, current_user, current_user_access
-    )
+    lead_church = await church_services.get_church_by_code(code)
+    churches = await church_lead_services.get_all_churches_by_lead_code(code, is_active)
     # set response body
     response = dict(
         data=churches,

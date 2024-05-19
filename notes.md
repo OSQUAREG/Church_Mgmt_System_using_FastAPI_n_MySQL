@@ -1,3 +1,13 @@
+# Application
+
+## Hashing Password in terminal
+
+1. In the project folder, use command: `python` and press enter.
+2. ```
+   from api.authentication.services.auth import AuthService  
+   AuthService().get_password_hash("<your password>")
+   ```
+
 ## Create your Secret Key in three steps
 
 1. Type `python` and enter
@@ -31,7 +41,6 @@ pm.environment.unset("access_token");
 pm.globals.set("access_token", token);
 
 pm.environment.set("access_token", token);
-
 
 # Client App
 
