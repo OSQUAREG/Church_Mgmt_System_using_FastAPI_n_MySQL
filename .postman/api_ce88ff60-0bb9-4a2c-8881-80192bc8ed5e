@@ -13,6 +13,8 @@ rootDirectory = postman/collections
 [config.relations.collections.metaData]
 
 [config.relations.apiDefinition]
+files[] = {"path":"openapi.json","metaData":{}}
 
 [config.relations.apiDefinition.metaData]
+rootFiles[] = openapi.json
 type = openapi:3_1
