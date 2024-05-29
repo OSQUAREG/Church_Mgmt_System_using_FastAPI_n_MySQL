@@ -9,7 +9,6 @@ id = ce88ff60-0bb9-4a2c-8881-80192bc8ed5e
 
 [config.relations.collections]
 rootDirectory = postman/collections
-files[] = {"id":"24491149-a4181b4f-bf02-4d31-a1fe-d7314195c9ae","path":"ChurchMan API Docs.json","metaData":{}}
 
 [config.relations.collections.metaData]
 
@@ -17,5 +16,5 @@ files[] = {"id":"24491149-a4181b4f-bf02-4d31-a1fe-d7314195c9ae","path":"ChurchMa
 files[] = {"path":"openapi.json","metaData":{}}
 
 [config.relations.apiDefinition.metaData]
-type = openapi:3_1
 rootFiles[] = openapi.json
+type = openapi:3_1
