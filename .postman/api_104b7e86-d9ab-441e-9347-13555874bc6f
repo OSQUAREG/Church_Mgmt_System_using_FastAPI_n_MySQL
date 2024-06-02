@@ -9,7 +9,6 @@ id = 104b7e86-d9ab-441e-9347-13555874bc6f
 
 [config.relations.collections]
 rootDirectory = postman/collections
-files[] = {"id":"24491149-4b0200cf-6c31-42e4-bce7-61a8ad45e9aa","path":"ChurchMan - Church Management System.json","metaData":{"generateCollectionPreferences":"{\"folderStrategy\":\"Paths\",\"includeDeprecated\":true,\"includeAuthInfoInExample\":true,\"enableOptionalParameters\":true,\"keepImplicitHeaders\":true,\"requestNameSource\":\"Fallback\",\"indentCharacter\":\"Space\",\"requestParametersResolution\":\"Example\",\"exampleParametersResolution\":\"Example\",\"collapseFolders\":true,\"optimizeConversion\":true}"}}
 
 [config.relations.collections.metaData]
 
