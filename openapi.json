@@ -779,73 +779,6 @@
                 }
             }
         },
-        "/api/v1/church/{church_code}/branches": {
-            "get": {
-                "tags": [
-                    "Churches Sub-Module Operations"
-                ],
-                "summary": "Get Branches By Church",
-                "operationId": "Get_Branches_by_Church_api_v1_church__church_code__branches_get",
-                "security": [
-                    {
-                        "OAuth2PasswordBearer": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "name": "church_code",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "description": "code of the church to retrieve branches",
-                            "title": "Church Code"
-                        },
-                        "description": "code of the church to retrieve branches"
-                    },
-                    {
-                        "name": "status_code",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "anyOf": [
-                                {
-                                    "type": "string"
-                                },
-                                {
-                                    "type": "null"
-                                }
-                            ],
-                            "description": "(Optional) status of the branches to retrieve: ACT-active, INA-inactive, AWT-awaiting, APR-approved, REJ-rejected",
-                            "title": "Status Code"
-                        },
-                        "description": "(Optional) status of the branches to retrieve: ACT-active, INA-inactive, AWT-awaiting, APR-approved, REJ-rejected"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ChurchResponse"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/church/level/{level_code}": {
             "get": {
                 "tags": [
@@ -1211,6 +1144,73 @@
                             ],
                             "title": "Is Active"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ChurchLeadsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/church_leads/{church_code}/branches": {
+            "get": {
+                "tags": [
+                    "Church Leads Sub-Module Operations"
+                ],
+                "summary": "Get Branches By Church",
+                "operationId": "Get_Branches_by_Church_api_v1_church_leads__church_code__branches_get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "church_code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "description": "code of the church to retrieve branches",
+                            "title": "Church Code"
+                        },
+                        "description": "code of the church to retrieve branches"
+                    },
+                    {
+                        "name": "status_code",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "(Optional) status of the branches to retrieve: ACT-active, INA-inactive, AWT-awaiting, APR-approved, REJ-rejected",
+                            "title": "Status Code"
+                        },
+                        "description": "(Optional) status of the branches to retrieve: ACT-active, INA-inactive, AWT-awaiting, APR-approved, REJ-rejected"
                     }
                 ],
                 "responses": {
