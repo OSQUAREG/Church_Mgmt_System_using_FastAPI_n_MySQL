@@ -1,7 +1,7 @@
 checkbox = """<input type="checkbox" checked>"""
 uncheckbox = """<input type="checkbox" unchecked disabled>"""
 description = f"""
-The Church Management System (ChMS) is an application that helps in managing of Church members, groups, events, assets, mass communication and finances (tithes, offerings, donations, seeds etc).
+The Church Management System (ChMS) is an application that helps the Church manage her members, groups, events, assets, mass communication and finances (tithes, offerings, donations, seeds etc).
 
 # Modules
 
