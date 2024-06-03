@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import Optional, Union
 
-from pydantic import BaseModel, Field, validator  # type: ignore
+from pydantic import BaseModel, validator  # type: ignore
 
 from ...common.utils import custom_title_case
 
@@ -12,6 +13,10 @@ class Hierarchy(BaseModel):
     Church_Level: Optional[str] = None
     ChurchLevel_Code: Optional[str] = None
     Is_Active: Optional[bool] = True
+    Created_By: Optional[str] = None
+    Created_Date: Optional[datetime] = None
+    Modified_By: Optional[str] = None
+    Modified_Date: Optional[datetime] = None
 
 
 class HierarchyResponse(BaseModel):

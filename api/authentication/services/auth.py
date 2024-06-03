@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-
-from ...check import User
 from fastapi import HTTPException, status  # type: ignore
 from passlib.context import CryptContext  # type: ignore
 from jose import JWTError, jwt  # type: ignore
@@ -9,7 +7,7 @@ from sqlalchemy.orm import Session  # type: ignore
 from sqlalchemy import text  # type: ignore
 
 from ...common.config import settings
-from ...authentication.models.auth import TokenLevelData, TokenData
+from ...authentication.models.auth import TokenLevelData, TokenData, User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -68,12 +66,12 @@ class AuthService:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found",
                 )
-            print("user fetched")
+            # print("user fetched")
             return user
         except Exception as err:
             db.rollback()
-            print(err)
-            print("user not fetched")
+            # print(err)
+            # print("user not fetched")
             raise err
 
     # Create Access Token
@@ -84,7 +82,7 @@ class AuthService:
         )
         payload.update({"exp": expires_delta})
         token = jwt.encode(payload, key=JWT_SECRET_KEY, algorithm=ALGORITHM)
-        print("access token created")
+        # print("access token created")
         return token
 
     # Verify Access Token
@@ -95,15 +93,15 @@ class AuthService:
             if username is None:
                 raise auth_credentials_exception
             token_data = TokenData(username=username)
-            print("access token verified")
+            # print("access token verified")
             return token_data
         except JWTError as err:
-            print(err)
-            print("access token not verified")
+            # print(err)
+            # print("access token not verified")
             raise auth_credentials_exception
         except AssertionError as err:
-            print(err)
-            print("access token not verified")
+            # print(err)
+            # print("access token not verified")
             raise auth_credentials_exception
 
     # Authenticate User
@@ -123,12 +121,12 @@ class AuthService:
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Oops! Incorrect username or password",
                 )
-            print("user authenticated")
+            # print("user authenticated")
             return user
         except Exception as err:
             db.rollback()
-            print(err)
-            print("user not authenticated")
+            # print(err)
+            # print("user not authenticated")
             raise err
 
     # Get User Access
@@ -142,7 +140,7 @@ class AuthService:
                     LEFT JOIN tblUser B ON B.Usercode = A.Usercode
                     LEFT JOIN tblHeadChurchLevels C ON C.Level_Code = A.Level_Code AND C.Head_Code = A.HeadChurch_Code
                     LEFT JOIN tblMember D ON D.Code = A.Usercode
-                    WHERE A.Is_Active=1 AND B.Is_Active=1
+                    WHERE A.Is_Active = :Is_Active AND B.Is_Active = :Is_Active AND A.Status = :Status
                         AND A.Usercode = :Usercode AND (A.Level_Code = :Level_Code OR C.ChurchLevel_Code = :ChurchLevel_Code);
                     """
                 ),
@@ -150,19 +148,21 @@ class AuthService:
                     Usercode=username,
                     Level_Code=church_level,
                     ChurchLevel_Code=church_level,
+                    Is_Active=1,
+                    Status="APR",
                 ),
             ).first()
             if not user_level:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found",
+                    detail="User's Church Level not found or approved",
                 )
-            print("user level fetched")
+            # print("user level fetched")
             return user_level
         except Exception as err:
             db.rollback()
-            print(err)
-            print("user level not fetched")
+            # print(err)
+            # print("user level not fetched")
             raise err
 
     # Re-Authenticate User Access
@@ -211,12 +211,12 @@ class AuthService:
                 )
             # get user access data from db
             user_access = self.get_user_level(current_user.Usercode, church_level, db)
-            print("user re-authenticated")
+            # print("user re-authenticated")
             return user_access
         except Exception as err:
             db.rollback()
-            print(err)
-            print("user not re-authenticated")
+            # print(err)
+            # print("user not re-authenticated")
             raise err
 
     # Re-Verify Access Token
@@ -231,15 +231,15 @@ class AuthService:
                 username=username,
                 church_level=church_level,
             )
-            print("user re-verified")
+            # print("user re-verified")
             return token_data
         except JWTError as e:
-            print(e)
-            print("user not re-verified")
+            # print(e)
+            # print("user not re-verified")
             raise auth_credentials_exception
         except AssertionError as e:
-            print(e)
-            print("user not re-verified")
+            # print(e)
+            # print("user not re-verified")
             raise auth_credentials_exception
 
     def get_user_access(self, username: str, church_level: str, db: Session):
@@ -255,7 +255,7 @@ class AuthService:
                     LEFT JOIN tblHeadChurchLevels E ON E.Level_Code = A.Level_Code
                     LEFT JOIN dfHierarchy F ON F.Code = A.Level_Code
                     LEFT JOIN tblMember G ON G.Code = A.Usercode
-                    WHERE A.Is_Active=1 AND B.Is_Active=1 AND C.Is_Active=1
+                    WHERE A.Is_Active = :Is_Active AND B.Is_Active = :Is_Active AND C.Is_Active = :Is_Active AND A.Status = :Status AND B.Status = :Status
                         AND A.Usercode = :Usercode AND (A.Level_Code = :Level_Code OR E.ChurchLevel_Code = :ChurchLevel_Code);
                     """
                 ),
@@ -263,6 +263,8 @@ class AuthService:
                     Usercode=username,
                     Level_Code=church_level,
                     ChurchLevel_Code=church_level,
+                    Is_Active=1,
+                    Status="APR",
                 ),
             ).all()
             if not user_access:
@@ -270,12 +272,12 @@ class AuthService:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="User access denied. Select a valid Church Level.",
                 )
-            print("user access fetched")
+            # print("user access fetched")
             return user_access
         except Exception as err:
             db.rollback()
-            print(err)
-            print("user access not fetched")
+            # print(err)
+            # print("user access not fetched")
             raise err
 
     def get_user_levels(self, username: str, db: Session):
@@ -286,21 +288,21 @@ class AuthService:
                     SELECT A.Level_Code, B.ChurchLevel_Code, B.Church_Level
                     FROM tblUserRole A
                     LEFT JOIN tblHeadChurchLevels B ON B.Level_Code = A.Level_Code AND B.Head_Code = A.HeadChurch_Code
-                    WHERE A.Is_Active=1 AND B.Is_Active
+                    WHERE A.Is_Active = :Is_Active AND B.Is_Active = :Is_Active AND A.Status = :Status
                     AND Usercode = :Usercode;
                     """
                 ),
-                dict(Usercode=username),
+                dict(Usercode=username, Is_Active=1, Status="APR"),
             ).all()
             if not user_levels:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="You don't have access to any Church Levels.",
                 )
-            print("user levels fetched")
+            # print("user levels fetched")
             return user_levels
         except Exception as err:
             db.rollback()
-            print(err)
-            print("user levels not fetched")
+            # print(err)
+            # print("user levels not fetched")
             raise err

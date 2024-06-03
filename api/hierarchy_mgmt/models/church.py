@@ -1,21 +1,34 @@
 from datetime import datetime
 from typing import Optional, Union
 
-from pydantic import BaseModel, validator  # type: ignore
+from pydantic import BaseModel, validator, Field  # type: ignore
+from .head_church import HeadChurchBase, HeadChurchUpdate
 
-from .head_church import HeadChurchBase, HeadChurchUpdate, ChurchCode, ChurchStatus
 
+class ChurchCode(BaseModel):
+    Id: int
+    Code: Optional[str] = Field(
+        default=None, examples=["TEST-AAA-000000000"], max_length=18
+    )
 
-class ChurchBase(HeadChurchBase):
-    Level_Code: str
-    HeadChurch_Code: str
-
-    @validator("Level_Code")
+    @validator("Code")
     def upper_case_strings(cls, v):
         return v.upper() if v else None
 
 
+class ChurchBase(HeadChurchBase):
+    pass
+
+
+class ChurchStatus(BaseModel):
+    Status: Optional[str] = None
+    Status_Date: Optional[datetime] = None
+    Status_By: Optional[str] = None
+
+
 class Church(ChurchStatus, ChurchBase, ChurchCode):
+    Level_Code: str
+    HeadChurch_Code: str
     Is_Active: Optional[bool] = True
     Created_Date: Optional[datetime] = None
     Created_By: Optional[str] = None
@@ -30,9 +43,4 @@ class ChurchResponse(BaseModel):
 
 
 class ChurchUpdate(HeadChurchUpdate):
-    Level_Code: Optional[str] = None
-    HeadChurch_Code: Optional[str] = None
-
-    @validator("Level_Code")
-    def upper_case_strings(cls, v):
-        return v.upper() if v else None
+    pass

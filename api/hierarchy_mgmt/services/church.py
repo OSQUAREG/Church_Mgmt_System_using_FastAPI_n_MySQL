@@ -8,12 +8,12 @@ from sqlalchemy.orm import Session  # type: ignore
 from ...authentication.models.auth import User, UserAccess
 from ...hierarchy_mgmt.models.church import ChurchBase, ChurchUpdate
 from ...common.database import get_db
+from ...common.utils import check_if_new_code_name_exist, get_level, set_user_access
 from ...common.dependencies import (
     get_current_user,
     get_current_user_access,
     set_db_current_user,
 )
-from ...common.utils import check_if_new_name_exist, get_level_no, set_user_access
 
 
 class ChurchServices:
@@ -42,9 +42,7 @@ class ChurchServices:
     async def create_new_church(self, level_code: str, church: ChurchBase):
         try:
             # check and get church level no
-            level_no = get_level_no(
-                level_code, self.current_user.HeadChurch_Code, self.db
-            )
+            level_no = get_level(level_code, self.current_user.HeadChurch_Code, self.db)
             # set user access
             set_user_access(
                 self.current_user_access,
@@ -52,22 +50,26 @@ class ChurchServices:
                 role_code=["ADM", "SAD"],
                 # level_code=["CHU"],
                 level_no=level_no.Level_No - 1,
-                module_code=["HRCH"],
+                module_code=["ALLM", "HRCH"],
                 # submodule_code=["HEAD", "CL1"],
                 access_type=["CR"],
             )
             # checks if Name already exist
-            check_if_new_name_exist(
-                church.Name, "tblChurches", self.db, self.current_user.HeadChurch_Code
+            check_if_new_code_name_exist(
+                new_code_name=church.Name,
+                table_name="tblChurches",
+                db=self.db,
+                action="create",
+                headchurch_code=self.current_user.HeadChurch_Code,
             )
             # insert new church
             self.db.execute(
                 text(
                     """
                     INSERT INTO tblChurches
-                        (Name, Alt_Name, Address, Founding_Date, About, Mission, Vision, Motto, Contact_No, Contact_No2, Contact_Email, Contact_Email2, Town_Code, State_Code, Region_Code, Country_Code, Level_Code, HeadChurch_Code, Created_By, Modified_By)
+                        (Name, Alt_Name, Address, Founding_Date, About, Mission, Vision, Motto, Contact_No, Contact_No2, Contact_Email, Contact_Email2, Town_Code, State_Code, Region_Code, Country_Code, Level_Code, HeadChurch_Code, Created_By)
                     VALUES
-                        (:Name, :Alt_Name, :Address, :Founding_Date, :About, :Mission, :Vision, :Motto, :Contact_No, :Contact_No2, :Contact_Email, :Contact_Email2, :Town_Code, :State_Code, :Region_Code, :Country_Code, :Level_Code, :HeadChurch_Code, :Created_By, :Modified_By);
+                        (:Name, :Alt_Name, :Address, :Founding_Date, :About, :Mission, :Vision, :Motto, :Contact_No, :Contact_No2, :Contact_Email, :Contact_Email2, :Town_Code, :State_Code, :Region_Code, :Country_Code, :Level_Code, :HeadChurch_Code, :Created_By);
                     """
                 ),
                 dict(
@@ -91,7 +93,6 @@ class ChurchServices:
                     Level_Code=level_code.upper(),
                     HeadChurch_Code=self.current_user.HeadChurch_Code,
                     Created_By=self.current_user.Usercode,
-                    Modified_By=self.current_user.Usercode,
                 ),
             )
             self.db.commit()
@@ -103,18 +104,23 @@ class ChurchServices:
             self.db.rollback()
             raise err
 
-    async def approve_church_by_code(self, code: str):
+    async def approve_church_by_code(self, id_code: str):
         try:
             # fetch church data
-            church = await self.get_church_by_code(code)
+            church = await self.get_church_by_id_code(id_code)
             # check if church is active
             if not church.Is_Active:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Church must be active before it can be approved.",
                 )
+            if church.Status == "APR":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Church is already approved!",
+                )
             # get church level no
-            level_no = get_level_no(
+            level_no = get_level(
                 church.Level_Code, self.current_user.HeadChurch_Code, self.db
             )
             # set user access
@@ -123,7 +129,7 @@ class ChurchServices:
                 headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 level_no=level_no.Level_No - 1,
-                module_code=["HRCH"],
+                module_code=["ALLM", "HRCH"],
                 access_type=["AR"],
             )
             # update church
@@ -132,21 +138,22 @@ class ChurchServices:
                     """
                     UPDATE tblChurches 
                     SET Status = :Status, Status_By = :Status_By, Status_Date = :Status_Date 
-                    WHERE Code = :Code AND Is_Active = :Is_Active AND (Status = :Old_Status1 OR Status = :Old_Status2);
+                    WHERE Id = :Id AND Is_Active = :Is_Active 
+                        AND (Status = :Old_Status1 OR Status = :Old_Status2);
                     """
                 ),
                 dict(
                     Status="APR",
                     Status_By=self.current_user.Usercode,
                     Status_Date=datetime.now(),
-                    Code=code,
+                    Id=church.Id,
                     Is_Active=1,
                     Old_Status1="AWT",
                     Old_Status2="ACT",
                 ),
             )
             self.db.commit()
-            return await self.get_church_by_code(code)
+            return await self.get_church_by_id_code(id_code)
         except Exception as err:
             self.db.rollback()
             raise err
@@ -157,21 +164,29 @@ class ChurchServices:
             set_user_access(
                 self.current_user_access,
                 headchurch_code=self.current_user.HeadChurch_Code,
-                module_code=["HRCH"],
+                module_code=["ALLM", "HRCH"],
                 access_type=["VW"],
             )
             # fetch all churches
             churches = (
                 self.db.execute(
                     text(
-                        "SELECT * FROM tblChurches WHERE HeadChurch_Code = :HeadChurch_Code ORDER BY Code, Level_Code;"
+                        """
+                        SELECT * FROM tblChurches 
+                        WHERE HeadChurch_Code = :HeadChurch_Code 
+                        ORDER BY Code, Level_Code;
+                        """
                     ),
                     dict(HeadChurch_Code=self.current_user.HeadChurch_Code),
                 ).all()
                 if status_code is None
                 else self.db.execute(
                     text(
-                        "SELECT * FROM tblChurches WHERE HeadChurch_Code = :HeadChurch_Code AND Status = :Status ORDER BY Code;"
+                        """
+                        SELECT * FROM tblChurches 
+                        WHERE HeadChurch_Code = :HeadChurch_Code AND Status = :Status 
+                        ORDER BY Code;
+                        """
                     ),
                     dict(
                         HeadChurch_Code=self.current_user.HeadChurch_Code,
@@ -185,14 +200,14 @@ class ChurchServices:
             raise err
 
     async def get_churches_by_level(
-        self, level_code: str, is_active: Optional[bool] = None
+        self, level_code: str, status_code: Optional[str] = None
     ):
         try:
             # set user access
             set_user_access(
                 self.current_user_access,
                 headchurch_code=self.current_user.HeadChurch_Code,
-                module_code=["HRCH"],
+                module_code=["ALLM", "HRCH"],
                 access_type=["VW"],
             )
             # fetch churches by level
@@ -206,15 +221,19 @@ class ChurchServices:
                         Level_Code=level_code,
                     ),
                 ).all()
-                if is_active is None
+                if status_code is None
                 else self.db.execute(
                     text(
-                        "SELECT * FROM tblChurches WHERE HeadChurch_Code = :HeadChurch_Code AND Level_Code = :Level_Code AND Is_Active = :Is_Active ORDER BY Code;"
+                        """
+                        SELECT * FROM tblChurches 
+                        WHERE HeadChurch_Code = :HeadChurch_Code AND Level_Code = :Level_Code 
+                            AND Status = :Status ORDER BY Code;
+                        """
                     ),
                     dict(
                         HeadChurch_Code=self.current_user.HeadChurch_Code,
                         Level_Code=level_code,
-                        Is_Active=is_active,
+                        Status=status_code,
                     ),
                 ).all()
             )
@@ -223,27 +242,31 @@ class ChurchServices:
             self.db.rollback()
             raise err
 
-    async def get_church_by_code(self, code: str):
+    async def get_church_by_id_code(self, id_code: str):
         try:
             # set user access
             set_user_access(
                 self.current_user_access,
                 headchurch_code=self.current_user.HeadChurch_Code,
-                module_code=["HRCH"],
+                module_code=["ALLM", "HRCH"],
                 access_type=["VW", "ED", "AR"],
             )
             # fetch church
             church = self.db.execute(
                 text(
-                    "SELECT * FROM tblChurches WHERE HeadChurch_Code = :HeadChurch_Code AND Code = :Code;"
+                    "SELECT * FROM tblChurches WHERE HeadChurch_Code = :HeadChurch_Code AND (Code = :Code or Id = :Id);"
                 ),
-                dict(HeadChurch_Code=self.current_user.HeadChurch_Code, Code=code),
+                dict(
+                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Code=id_code,
+                    Id=id_code,
+                ),
             ).first()
             # check if church exists
             if church is None:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"church with code: '{code.upper()}' not found in Head Church: {self.current_user.HeadChurch_Code}",
+                    detail=f"church with code: '{id_code.upper()}' not found in Head Church: {self.current_user.HeadChurch_Code}",
                 )
             return church
         except Exception as err:
@@ -253,7 +276,7 @@ class ChurchServices:
     async def update_church_by_code(self, code: str, church: ChurchUpdate):
         try:
             # fetch church data
-            old_church = await self.get_church_by_code(code)
+            old_church = await self.get_church_by_id_code(code)
             # check if church is active
             if not church.Is_Active:
                 raise HTTPException(
@@ -261,7 +284,7 @@ class ChurchServices:
                     detail="Church must be active before it can be updated.",
                 )
             # get church level no
-            level_no = get_level_no(
+            level_no = get_level(
                 old_church.Level_Code, self.current_user.HeadChurch_Code, self.db
             )
             # set user access
@@ -271,16 +294,18 @@ class ChurchServices:
                 role_code=["ADM", "SAD"],
                 church_code=old_church.Code,
                 level_no=level_no.Level_No,
-                module_code=["HRCH"],
+                module_code=["ALLM", "HRCH"],
                 access_type=["ED"],
             )
             # check if new Name already exist
             if church.Name is not None and church.Name != old_church.Name:
-                check_if_new_name_exist(
+                check_if_new_code_name_exist(
                     church.Name,
                     self.current_user.HeadChurch_Code,
                     "tblChurches",
                     self.db,
+                    "update",
+                    old_church.Name,
                 )
             # update church data
             self.db.execute(
@@ -352,7 +377,7 @@ class ChurchServices:
                 ),
             )
             self.db.commit()
-            return await self.get_church_by_code(code)
+            return await self.get_church_by_id_code(code)
         except Exception as err:
             self.db.rollback()
             raise err
@@ -360,7 +385,7 @@ class ChurchServices:
     async def activate_church_by_code(self, code: str):
         try:
             # fetch church data
-            church = await self.get_church_by_code(code)
+            church = await self.get_church_by_id_code(code)
             # check if church is active
             if church.Is_Active:
                 raise HTTPException(
@@ -368,7 +393,7 @@ class ChurchServices:
                     detail="Church is already active.",
                 )
             # get church level no
-            level_no = get_level_no(
+            level_no = get_level(
                 church.Level_Code, self.current_user.HeadChurch_Code, self.db
             )
             # set user access
@@ -377,7 +402,7 @@ class ChurchServices:
                 headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 level_no=level_no.Level_No - 1,
-                module_code=["HRCH"],
+                module_code=["ALLM", "HRCH"],
                 access_type=["ED"],
             )
             # activate church
@@ -395,7 +420,7 @@ class ChurchServices:
                 ),
             )
             self.db.commit()
-            return await self.get_church_by_code(code)
+            return await self.get_church_by_id_code(code)
         except Exception as err:
             self.db.rollback()
             raise err
@@ -403,7 +428,7 @@ class ChurchServices:
     async def deactivate_church_by_code(self, code: str):
         try:
             # fetch church data
-            church = await self.get_church_by_code(code)
+            church = await self.get_church_by_id_code(code)
             # check if church is active
             if not church.Is_Active:
                 raise HTTPException(
@@ -411,7 +436,7 @@ class ChurchServices:
                     detail="Church is already inactive.",
                 )
             # get church level no
-            level_no = get_level_no(
+            level_no = get_level(
                 church.Level_Code, self.current_user.HeadChurch_Code, self.db
             )
             # set user access
@@ -420,7 +445,7 @@ class ChurchServices:
                 headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 level_no=level_no.Level_No - 1,
-                module_code=["HRCH"],
+                module_code=["ALLM", "HRCH"],
                 access_type=["ED"],
             )
             # deactivate church
@@ -438,7 +463,7 @@ class ChurchServices:
                 ),
             )
             self.db.commit()
-            return await self.get_church_by_code(code)
+            return await self.get_church_by_id_code(code)
         except Exception as err:
             self.db.rollback()
             raise err

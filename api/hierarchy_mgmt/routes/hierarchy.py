@@ -1,14 +1,16 @@
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, status, Depends  # type: ignore
+from fastapi import APIRouter, status, Depends, Path  # type: ignore
 
+from ...hierarchy_mgmt.models.hierarchy import HierarchyResponse, HierarchyUpdate
 from ...hierarchy_mgmt.services.hierarchy import (
     HierarchyService,
     get_hierarchy_services,
 )
-from ...hierarchy_mgmt.models.hierarchy import HierarchyResponse, HierarchyUpdate
 
-hierarchy_router = APIRouter(prefix="/hierarchy", tags=["Hierarchy Operations"])
+hierarchy_router = APIRouter(
+    prefix="/admin/hierarchy", tags=["Hierarchy Sub-Module Operations"]
+)
 
 """
 Hierarchy Routes
@@ -49,7 +51,9 @@ async def get_all_hierarchies(
     response_model=HierarchyResponse,
 )
 async def get_hierarchy_by_code(
-    code: str,
+    code: Annotated[
+        str, Path(..., description="Code of the hierarchy to be retrieved")
+    ],
     hierarchy_services: Annotated[HierarchyService, Depends(get_hierarchy_services)],
 ):
     hierarchy = await hierarchy_services.get_hierarchy_by_code(code)
@@ -57,7 +61,7 @@ async def get_hierarchy_by_code(
     response = dict(
         data=hierarchy,
         status_code=status.HTTP_200_OK,
-        message=f"Successsfully retrieved {hierarchy.Level_Code} Hierarchy: '{hierarchy.Church_Level}', with code: '{hierarchy.ChurchLevel_Code}'",
+        message=f"Successsfully retrieved {hierarchy.Level_Code} Hierarchy: '{hierarchy.Church_Level} ({hierarchy.ChurchLevel_Code})'",
     )
     return response
 
@@ -70,7 +74,9 @@ async def get_hierarchy_by_code(
     response_model=HierarchyResponse,
 )
 async def activate_hierarchy_by_code(
-    code: str,
+    code: Annotated[
+        str, Path(..., description="Code of the hierarchy to be activated")
+    ],
     hierarchy_services: Annotated[HierarchyService, Depends(get_hierarchy_services)],
 ):
     activated_hierarchy = await hierarchy_services.activate_hierarchy_by_code(code)
@@ -79,7 +85,7 @@ async def activate_hierarchy_by_code(
     response = dict(
         data=activated_hierarchy,
         status_code=status.HTTP_200_OK,
-        message=f"Successsfully activated {activated_hierarchy.Level_Code} Hierarchy: '{activated_hierarchy.Church_Level}', with code: '{activated_hierarchy.ChurchLevel_Code}'",
+        message=f"Successsfully activated {activated_hierarchy.Level_Code} Hierarchy: '{activated_hierarchy.Church_Level} ({activated_hierarchy.ChurchLevel_Code})'",
     )
     return response
 
@@ -92,7 +98,9 @@ async def activate_hierarchy_by_code(
     response_model=HierarchyResponse,
 )
 async def deactivate_hierarchy_by_code(
-    code: str,
+    code: Annotated[
+        str, Path(..., description="Code of the hierarchy to be deactivated")
+    ],
     hierarchy_services: Annotated[HierarchyService, Depends(get_hierarchy_services)],
 ):
     deactivated_hierarchy = await hierarchy_services.deactivate_hierarchy_by_code(code)
@@ -100,7 +108,7 @@ async def deactivate_hierarchy_by_code(
     response = dict(
         data=deactivated_hierarchy,
         status_code=status.HTTP_200_OK,
-        message=f"Successsfully deactivated {deactivated_hierarchy.Level_Code} Hierarchy: '{deactivated_hierarchy.Church_Level}', with code: '{deactivated_hierarchy.ChurchLevel_Code}'",
+        message=f"Successsfully deactivated {deactivated_hierarchy.Level_Code} Hierarchy: '{deactivated_hierarchy.Church_Level} ({deactivated_hierarchy.ChurchLevel_Code})'",
     )
     return response
 
@@ -113,7 +121,7 @@ async def deactivate_hierarchy_by_code(
     response_model=HierarchyResponse,
 )
 async def update_hierarchy_by_code(
-    code: str,
+    code: Annotated[str, Path(..., description="Code of the hierarchy to be updated")],
     hierarchy: HierarchyUpdate,
     hierarchy_services: Annotated[HierarchyService, Depends(get_hierarchy_services)],
 ):
@@ -124,6 +132,6 @@ async def update_hierarchy_by_code(
     response = dict(
         data=updated_hierarchy,
         status_code=status.HTTP_200_OK,
-        message=f"Successsfully updated {updated_hierarchy.Level_Code} Hierarchy: '{updated_hierarchy.Church_Level}', with code: '{updated_hierarchy.ChurchLevel_Code}'",
+        message=f"Successsfully updated {updated_hierarchy.Level_Code} Hierarchy: '{updated_hierarchy.Church_Level} ({updated_hierarchy.ChurchLevel_Code})'",
     )
     return response

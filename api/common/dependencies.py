@@ -1,12 +1,12 @@
 from typing import Annotated
 
-from ..check import User
 from fastapi import Depends, HTTPException, status  # type: ignore
 from fastapi.security import OAuth2PasswordBearer  # type: ignore
 from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
-from .database import get_db
+from ..common.database import get_db
+from ..authentication.models.auth import User
 from ..authentication.services.auth import AuthService, auth_credentials_exception
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -31,11 +31,11 @@ async def get_current_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Inactive user",
             )
-        print("current user fetched")
+        # print("current user fetched")
         return current_user
     except Exception as err:
         print(err)
-        print("current user not fetched")
+        # print("current user not fetched")
         raise err
 
 
@@ -46,11 +46,11 @@ async def set_db_current_user(
 ):
     try:
         db.execute(text(f"SET @current_user = '{current_user.Usercode}';"))
-        print("db current user set to", current_user.Usercode)
+        # print("db current user set to", current_user.Usercode)
         return current_user.Usercode
     except Exception as err:
         print(err)
-        print("db current user not set")
+        # print("db current user not set")
         raise err
 
 
@@ -67,9 +67,9 @@ async def get_current_user_access(
         # checks if user exist
         if current_user is None:
             raise auth_credentials_exception
-        print("current user access fetched")
+        # print("current user access fetched")
         return current_user
     except Exception as err:
         print(err)
-        print("current user access not fetched")
+        # print("current user access not fetched")
         raise err

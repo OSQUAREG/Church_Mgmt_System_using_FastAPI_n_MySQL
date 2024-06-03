@@ -1,7 +1,13 @@
 from datetime import datetime
-from ...common.utils import custom_title_case, get_phonenumber
-from pydantic import BaseModel, Field, validator, EmailStr  # type: ignore
 from typing import Optional, Union
+
+from pydantic import BaseModel, Field, validator, EmailStr  # type: ignore
+from ...common.utils import custom_title_case, get_phonenumber
+
+
+class MemberCode(BaseModel):
+    Code: str
+    Clergy_Code: Optional[str] = None
 
 
 class MemberBase(BaseModel):
@@ -17,8 +23,8 @@ class MemberBase(BaseModel):
     )
     Date_of_Birth: str = Field(examples=["2000-12-31"])
     Gender: str = Field(examples=["Male"], max_length=1)
-    Marital_Status: str = Field(examples=["Single"], max_length=3)
-    Employ_Status: str = Field(examples=["EMPD"], max_length=3)
+    Marital_Status: str = Field(examples=["Single"], max_length=4)
+    Employ_Status: str = Field(examples=["EMPD"], max_length=4)
     Occupation: Optional[str] = Field(default=None, examples=["Doctor"], max_length=100)
     Office_Address: Optional[str] = Field(
         default=None, examples=["This is the address of the Office"], max_length=500
@@ -38,14 +44,153 @@ class MemberBase(BaseModel):
     Contact_Email2: Optional[EmailStr] = Field(
         default=None, examples=["john.doe@example.com"], max_length=255
     )
-    Is_User: Optional[bool] = Field(default=False)
     Town_Code: str = Field(max_length=4)
     State_Code: str = Field(max_length=4)
     Region_Code: str = Field(max_length=4)
     Country_Code: str = Field(max_length=4)
     Type: str = Field(examples=["MBR"], max_length=3)
+
+    @validator(
+        "First_Name",
+        "Middle_Name",
+        "Last_Name",
+        "Home_Address",
+        "Office_Address",
+        "Title",
+        "Title2",
+        "Family_Name",
+        "Occupation",
+    )
+    def title_case_strings(cls, v):
+        return custom_title_case(v) if v else None
+
+    @validator("Personal_Contact_No", "Contact_No", "Contact_No2")
+    def get_phone_numbers(cls, v):
+        return get_phonenumber(v) if v else None
+
+
+class MemberBranchJoinIn(BaseModel):
+    Branch_Code: str
+    Join_Date: datetime
+    Join_Reason: str
+    Join_Note: Optional[str] = None
+
+
+class MemberBranchExitIn(BaseModel):
+    Branch_Code: str
+    Exit_Date: datetime
+    Exit_Reason: str
+    Exit_Note: Optional[str] = None
+
+
+class MemberIn(MemberBranchJoinIn, MemberBase):
+    pass
+
+
+class Member(MemberBranchExitIn, MemberIn, MemberCode):
+    Is_User: Optional[bool] = Field(default=False)
     Is_Clergy: Optional[bool] = Field(default=False)
+    Is_Active: Optional[bool] = Field(default=True)
     HeadChurch_Code: str = Field(examples=["TEST"], max_length=4)
+    Created_Date: Optional[datetime] = None
+    Created_By: Optional[str] = None
+    Modified_Date: Optional[datetime] = None
+    Modified_By: Optional[str] = None
+
+
+class MemberResponse(BaseModel):
+    status_code: int
+    message: str
+    data: Union[list[Member], Member, None] = None
+
+
+class MemberBranchJoin(MemberBranchJoinIn):
+    Member_Code: str
+
+
+class MemberBranchExit(MemberBranchExitIn):
+    Member_Code: str
+
+
+class MemberBranchOut(BaseModel):
+    Member_Code: str
+    First_Name: str
+    Middle_Name: str
+    Last_Name: str
+    Branch_Code: str
+    Church_Name: str
+    Join_Date: datetime
+    Join_Reason: str
+    Join_Note: Optional[str] = None
+    Exit_Date: Optional[datetime] = None
+    Exit_Reason: Optional[str] = None
+    Exit_Note: Optional[str] = None
+    HeadChurch_Code: str
+    Is_Active: Optional[bool] = Field(default=True)
+    Created_Date: Optional[datetime] = None
+    Created_By: Optional[str] = None
+    Modified_Date: Optional[datetime] = None
+    Modified_By: Optional[str] = None
+
+
+class MemberBranchResponse(BaseModel):
+    status_code: int
+    message: str
+    data: Union[list[MemberBranchOut], MemberBranchOut, None] = None
+
+
+class MemberUpdate(BaseModel):
+    First_Name: Optional[str] = Field(default=None, examples=["John"], max_length=255)
+    Middle_Name: Optional[str] = Field(default=None, examples=["Janet"], max_length=255)
+    Last_Name: Optional[str] = Field(default=None, examples=["Doe"], max_length=255)
+    Title: Optional[str] = Field(default=None, examples=["Dr"], max_length=100)
+    Title2: Optional[str] = Field(default=None, examples=["Mrs"], max_length=100)
+    Family_Name: Optional[str] = Field(default=None, examples=["Doe"], max_length=255)
+    Is_FamilyHead: Optional[bool] = Field(default=False)
+    Home_Address: Optional[str] = Field(
+        default=None, examples=["This is the address of the Member"], max_length=500
+    )
+    Date_of_Birth: Optional[str] = Field(default=None, examples=["2000-12-31"])
+    Gender: Optional[str] = Field(default=None, examples=["Male"], max_length=1)
+    Marital_Status: Optional[str] = Field(
+        default=None, examples=["Single"], max_length=3
+    )
+    Employ_Status: Optional[str] = Field(default=None, examples=["EMPD"], max_length=3)
+    Occupation: Optional[str] = Field(default=None, examples=["Doctor"], max_length=100)
+    Office_Address: Optional[str] = Field(
+        default=None, examples=["This is the address of the Office"], max_length=500
+    )
+    State_of_Origin: Optional[str] = Field(
+        default=None, examples=["Lagos"], max_length=3
+    )
+    Personal_Contact_No: Optional[str] = Field(
+        default=None, examples=["+2348012345678"], max_length=25
+    )
+    Contact_No: Optional[str] = Field(
+        default=None, examples=["+2348012345678"], max_length=25
+    )
+    Contact_No2: Optional[str] = Field(
+        default=None, examples=["+2348012345678"], max_length=25
+    )
+    Personal_Email: Optional[EmailStr] = Field(
+        default=None, examples=["john.doe@example.com"], max_length=255
+    )
+    Contact_Email: Optional[EmailStr] = Field(
+        default=None, examples=["john.doe@example.com"], max_length=255
+    )
+    Contact_Email2: Optional[EmailStr] = Field(
+        default=None, examples=["john.doe@example.com"], max_length=255
+    )
+    Is_User: Optional[bool] = Field(default=False)
+    Town_Code: Optional[str] = Field(default=None, max_length=4)
+    State_Code: Optional[str] = Field(default=None, max_length=4)
+    Region_Code: Optional[str] = Field(default=None, max_length=4)
+    Country_Code: Optional[str] = Field(default=None, max_length=4)
+    Type: Optional[str] = Field(default=None, examples=["MBR"], max_length=3)
+    Is_Clergy: Optional[bool] = Field(default=False)
+    HeadChurch_Code: Optional[str] = Field(
+        default=None, examples=["TEST"], max_length=4
+    )
     Is_Active: Optional[bool] = Field(default=True)
     Created_Date: Optional[datetime] = None
     Created_By: Optional[str] = None
@@ -71,23 +216,13 @@ class MemberBase(BaseModel):
         return get_phonenumber(v) if v else None
 
 
-class MemberChurch(BaseModel):
-    Church_Code: str
-    Join_Date: datetime
-    Join_Type: str
+class MemberBranchUpdate(BaseModel):
+    Member_Code: Optional[str] = None
+    Branch_Code: Optional[str] = None
+    Join_Date: Optional[datetime] = None
+    Join_Reason: Optional[str] = None
     Join_Note: Optional[str] = None
     Exit_Date: Optional[datetime] = None
-    Exit_Type: Optional[str] = None
+    Exit_Reason: Optional[str] = None
     Exit_Note: Optional[str] = None
-    Is_Active_M: Optional[bool] = Field(default=True)
-    HeadChurch_Code: Optional[str] = Field(examples=["TEST"], max_length=4)
-
-
-class Member(MemberChurch, MemberBase):
-    pass
-
-
-class MemberResponse(BaseModel):
-    status_code: int
-    message: str
-    data: Union[list[Member], Member, None] = None
+    Is_Active: Optional[bool] = True

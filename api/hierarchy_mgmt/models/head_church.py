@@ -36,12 +36,14 @@ class HeadChurchBase(BaseModel):
     Contact_No2: Optional[PhoneNumber] = Field(
         default=None, examples=["+2348012345678"], max_length=25
     )
-    Contact_Email: EmailStr = Field(max_length=255)
-    Contact_Email2: Optional[EmailStr] = Field(default=None, max_length=255)
-    Town_Code: str = Field(max_length=4)
-    State_Code: str = Field(max_length=4)
-    Region_Code: str = Field(max_length=4)
-    Country_Code: str = Field(max_length=4)
+    Contact_Email: EmailStr = Field(examples=["john.doe@example.com"], max_length=255)
+    Contact_Email2: Optional[EmailStr] = Field(
+        default=None, examples=["john.doe2@example.com"], max_length=255
+    )
+    Town_Code: str = Field(examples=["BEN"], max_length=4)
+    State_Code: str = Field(examples=["EDO"], max_length=4)
+    Region_Code: str = Field(examples=["SOUT"], max_length=4)
+    Country_Code: str = Field(examples=["NIG"], max_length=4)
 
     @validator("Name", "Alt_Name", "Address")
     def title_case_strings(cls, v):
@@ -54,6 +56,10 @@ class HeadChurchBase(BaseModel):
     @validator("Contact_No", "Contact_No2")
     def get_phone_numbers(cls, v):
         return get_phonenumber(v) if v else None
+
+
+class HeadChurchCreate(HeadChurchBase, HeadChurchCode):
+    pass
 
 
 class HeadChurch(HeadChurchBase, HeadChurchCode):
@@ -95,12 +101,16 @@ class HeadChurchUpdate(BaseModel):
     Contact_No2: Optional[PhoneNumber] = Field(
         default=None, examples=["+2348012345678"], max_length=25
     )
-    Contact_Email: EmailStr = Field(default=None, max_length=255)
-    Contact_Email2: Optional[EmailStr] = Field(default=None, max_length=255)
-    Town_Code: str = Field(default=None, max_length=4)
-    State_Code: str = Field(default=None, max_length=4)
-    Region_Code: str = Field(default=None, max_length=4)
-    Country_Code: str = Field(default=None, max_length=4)
+    Contact_Email: EmailStr = Field(
+        default=None, examples=["john.doe@example.com"], max_length=255
+    )
+    Contact_Email2: Optional[EmailStr] = Field(
+        default=None, examples=["john.doe2@example.com"], max_length=255
+    )
+    Town_Code: str = Field(default=None, examples=["BEN"], max_length=4)
+    State_Code: str = Field(default=None, examples=["EDO"], max_length=4)
+    Region_Code: str = Field(default=None, examples=["SOUT"], max_length=4)
+    Country_Code: str = Field(default=None, examples=["NIG"], max_length=4)
 
     @validator("Name", "Alt_Name", "Address")
     def title_case_strings(cls, v):
@@ -125,17 +135,3 @@ class HeadChurchCodeUpdate(BaseModel):
 
 class HeadChurchUpdateIn(HeadChurchUpdate, HeadChurchCodeUpdate):
     pass
-
-
-class ChurchCode(BaseModel):
-    Code: str = Field(default=None, examples=["TEST-AAA-000000000"], max_length=18)
-
-    @validator("Code")
-    def upper_case_strings(cls, v):
-        return v.upper() if v else None
-
-
-class ChurchStatus(BaseModel):
-    Status: Optional[str] = None
-    Status_Date: Optional[datetime] = None
-    Status_By: Optional[str] = None

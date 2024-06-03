@@ -1,19 +1,18 @@
 from typing import Annotated, Optional
 
+from fastapi import HTTPException, status, Depends  # type: ignore
+from sqlalchemy import text  # type: ignore
+from sqlalchemy.orm import Session  # type: ignore
+
+from ...hierarchy_mgmt.models.hierarchy import HierarchyUpdate
+from ...authentication.models.auth import User, UserAccess
+from ...common.database import get_db
+from ...common.utils import set_user_access
 from ...common.dependencies import (
     get_current_user,
     get_current_user_access,
     set_db_current_user,
 )
-
-from ...common.database import get_db
-from fastapi import HTTPException, status, Depends  # type: ignore
-from sqlalchemy import text  # type: ignore
-from sqlalchemy.orm import Session  # type: ignore
-
-from ...common.utils import set_user_access
-from ...hierarchy_mgmt.models.hierarchy import HierarchyUpdate
-from ...authentication.models.auth import User, UserAccess
 
 
 class HierarchyService:
@@ -39,7 +38,7 @@ class HierarchyService:
             set_user_access(
                 self.current_user_access,
                 headchurch_code=self.current_user.HeadChurch_Code,
-                module_code=["HRCH"],
+                module_code=["ALLM", "HRCH"],
                 access_type=["VW"],
             )
 
@@ -47,7 +46,7 @@ class HierarchyService:
                 self.db.execute(
                     text(
                         """
-                    SELECT Head_Code, Level_Code, Church_Level, ChurchLevel_Code, Level_No, A.Is_Active 
+                    SELECT A.*, B.Level_No
                     FROM tblHeadChurchLevels A
                     LEFT JOIN dfHierarchy B ON B.Code = A.Level_Code
                     WHERE Head_Code = :Head_Code;
@@ -59,7 +58,7 @@ class HierarchyService:
                 else self.db.execute(
                     text(
                         """
-                    SELECT Head_Code, Level_Code, Church_Level, ChurchLevel_Code, Level_No, A.Is_Active 
+                    SELECT A.*, B.Level_No 
                     FROM tblHeadChurchLevels A
                     LEFT JOIN dfHierarchy B ON B.Code = A.Level_Code
                     WHERE Head_Code = :Head_Code AND A.Is_Active = :Is_Active;
@@ -83,15 +82,15 @@ class HierarchyService:
                 headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["HRCH"],
-                submodule_code=["HEAD", "HIER"],
+                module_code=["ALLM", "HRCH"],
+                submodule_code=["ALLS", "HEAD", "HIER"],
                 access_type=["VW", "ED"],
             )
             # fetch data from self.db
             hierarchy = self.db.execute(
                 text(
                     """
-                    SELECT Head_Code, Level_Code, Church_Level, ChurchLevel_Code, Level_No, A.Is_Active 
+                    SELECT A.*, Level_No
                     FROM tblHeadChurchLevels A
                     LEFT JOIN dfHierarchy B ON B.Code = A.Level_Code
                     WHERE Head_Code = :Head_Code AND (ChurchLevel_Code = :ChurchLevel_Code OR Level_Code = :Level_Code);
@@ -121,24 +120,29 @@ class HierarchyService:
                 headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["HRCH"],
-                submodule_code=["HEAD", "HIER"],
+                module_code=["ALLM", "HRCH"],
+                submodule_code=["ALLS", "HEAD", "HIER"],
                 access_type=["ED"],
             )
-            # fetch data from self.db
+            # fetch data from db
             hierarchy = await self.get_hierarchy_by_code(code)
-            print(hierarchy)
+            # print(hierarchy)
             if self.current_user.HeadChurch_Code != hierarchy.Head_Code:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Operation not allowed.",
+                    detail="Access Denied: Operation not allowed.",
+                )
+            if hierarchy.Is_Active == 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Hierarchy: '{hierarchy.Church_Level} ({hierarchy.ChurchLevel_Code})' is already active.",
                 )
             self.db.execute(
                 text(
                     """
                     UPDATE tblHeadChurchLevels
                     SET Is_Active = :Is_Active, Modified_By = :Modified_By
-                    WHERE Head_Code = :Head_Code AND ChurchLevel_Code IS NOT NULL 
+                    WHERE Head_Code = :Head_Code AND Is_Active = :Is_Active2 
                         AND (Level_Code = :Level_Code OR ChurchLevel_Code = :ChurchLevel_Code);
                     """
                 ),
@@ -146,6 +150,7 @@ class HierarchyService:
                     Is_Active=1,
                     Modified_By=self.current_user.Usercode,
                     Head_Code=self.current_user.HeadChurch_Code,
+                    Is_Active2=0,
                     Level_Code=hierarchy.Level_Code,
                     ChurchLevel_Code=code,
                 ),
@@ -164,8 +169,8 @@ class HierarchyService:
                 headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["HRCH"],
-                submodule_code=["HEAD", "HIER"],
+                module_code=["ALLM", "HRCH"],
+                submodule_code=["ALLS", "HEAD", "HIER"],
                 access_type=["ED"],
             )
             # fetch data from self.db
@@ -175,12 +180,17 @@ class HierarchyService:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Operation not allowed.",
                 )
+            if hierarchy.Is_Active == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Hierarchy: '{hierarchy.Church_Level} ({hierarchy.ChurchLevel_Code})' is already inactive.",
+                )
             self.db.execute(
                 text(
                     """
                     UPDATE tblHeadChurchLevels 
                     SET Is_Active = :Is_Active, Modified_By = :Modified_By 
-                    WHERE Head_Code = :Head_Code AND ChurchLevel_Code IS NOT NULL 
+                    WHERE Head_Code = :Head_Code AND Is_Active = :Is_Active2 
                         AND (Level_Code = :Level_Code OR ChurchLevel_Code = :ChurchLevel_Code);
                     """
                 ),
@@ -188,6 +198,7 @@ class HierarchyService:
                     Is_Active=0,
                     Modified_By=self.current_user.Usercode,
                     Head_Code=self.current_user.HeadChurch_Code,
+                    Is_Active2=1,
                     Level_Code=code,
                     ChurchLevel_Code=code,
                 ),
@@ -206,8 +217,8 @@ class HierarchyService:
                 headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["HRCH"],
-                submodule_code=["HEAD", "HIER"],
+                module_code=["ALLM", "HRCH"],
+                submodule_code=["ALLS", "HEAD", "HIER"],
                 access_type=["ED"],
             )
             # fetch data from self.db

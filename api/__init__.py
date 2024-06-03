@@ -1,27 +1,30 @@
 from fastapi import FastAPI, Request  # , HTTPException, status, Depends  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
-from fastapi.responses import HTMLResponse  # type: ignore
+
+# from fastapi.responses import HTMLResponse  # type: ignore
 from fastapi.staticfiles import StaticFiles  # type: ignore
 from fastapi.templating import Jinja2Templates  # type: ignore
-from sqlalchemy.orm import Session  # type: ignore
+
+# from sqlalchemy.orm import Session  # type: ignore
 
 from .authentication.routes import auth_router
 from .hierarchy_mgmt.routes import (
     hierarchy_router,
-    adm_head_chu_router,
+    head_chu_adm_router,
     head_chu_router,
     church_router,
+    church_adm_router,
     churchleads_router,
+    churchleads_adm_router,
+)
+from .membership_mgmt.routes import (
+    members_router,
+    members_adm_router,
+    member_church_router,
+    member_church_adm_router,
 )
 from .common.config import settings
-from .swagger_doc import (
-    title,
-    description,
-    tags_metadata,
-    contact,
-    license_info,
-    version,
-)
+from .swagger_doc import swagger_params
 
 # from save_openapi_json import save_openapi_spec
 from .common.database import create_audit_log_triggers, get_db
@@ -34,21 +37,15 @@ origins = [
     "http://localhost:3000",
 ]
 
+prefix = "/api/v1"
+
 
 def create_app():
     # Create Database Triggers for Audit Logs
     # create_audit_log_triggers()
 
     # Init app
-    app = FastAPI(
-        title=title,
-        description=description,
-        version=version,
-        contact=contact,
-        license_info=license_info,
-        openapi_tags=tags_metadata,
-        persistAuthorization=True,
-    )
+    app = FastAPI(**swagger_params)
 
     # Enable CORS middleware
     app.add_middleware(
@@ -60,12 +57,18 @@ def create_app():
     )
 
     # include routers to app
-    app.include_router(auth_router)
-    app.include_router(hierarchy_router)
-    app.include_router(adm_head_chu_router)
-    app.include_router(head_chu_router)
-    app.include_router(church_router)
-    app.include_router(churchleads_router)
+    app.include_router(auth_router, prefix=prefix)
+    app.include_router(hierarchy_router, prefix=prefix)
+    app.include_router(head_chu_adm_router, prefix=prefix)
+    app.include_router(head_chu_router, prefix=prefix)
+    app.include_router(church_router, prefix=prefix)
+    app.include_router(church_adm_router, prefix=prefix)
+    app.include_router(churchleads_router, prefix=prefix)
+    app.include_router(churchleads_adm_router, prefix=prefix)
+    app.include_router(members_router, prefix=prefix)
+    app.include_router(members_adm_router, prefix=prefix)
+    app.include_router(member_church_router, prefix=prefix)
+    app.include_router(member_church_adm_router, prefix=prefix)
 
     # Templates
     import os

@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 from pydantic import BaseModel  # type: ignore
 
-from .head_church import ChurchStatus
+from .church import ChurchStatus
 
 
 class ChurchLeadsBase(BaseModel):
@@ -14,15 +14,14 @@ class ChurchLeadsBase(BaseModel):
     Is_Active: bool
     Start_Date: datetime
     End_Date: Optional[datetime] = None
+
+
+class ChurchLeads(ChurchStatus, ChurchLeadsBase):
     HeadChurch_Code: str
     Created_Date: Optional[datetime] = None
     Created_By: Optional[str] = None
     Modified_Date: Optional[datetime] = None
     Modified_By: Optional[str] = None
-
-
-class ChurchLeads(ChurchStatus, ChurchLeadsBase):
-    pass
 
 
 class ChurchLeadsResponse(BaseModel):

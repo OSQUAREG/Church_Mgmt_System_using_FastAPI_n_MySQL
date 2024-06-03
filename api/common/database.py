@@ -30,8 +30,7 @@ def get_db() -> Session:
         print("Database connection closed.")
 
 
-# Automating Trigger Creation for Audit Log
-
+# Automating Trigger Creation for Audit Logs
 EXEMPT_COLUMNS = {
     "Created_Date",
     "Created_By",
@@ -40,6 +39,8 @@ EXEMPT_COLUMNS = {
     "Status_Date",
     "Status_By",
 }
+
+EXEMPT_TABLES = {"tblAuditLog", "tblCodeSequence"}
 
 
 # Get Columns
@@ -53,12 +54,16 @@ def drop_trigger(db, trigger_name):
     db.execute(text(f"DROP TRIGGER IF EXISTS {trigger_name};"))
 
 
-# Create Concat Statement
 def create_concat_statement(prefix, columns):
     concat_parts = []
     for column in columns:
-        concat_parts.append(f"'{column}: ', {prefix}.{column}")
-    return "CONCAT(" + ", ', ', ".join(concat_parts) + ")"
+        # concat_parts.append(f"'{column}: ', IFNULL({prefix}.{column}, 'null')")
+        concat_parts.append(
+            f"""
+            '"{column}": ', '"',IFNULL({prefix}.{column}, 'null'),'"'
+            """
+        )
+    return "CONCAT('{', " + ", ', ', ".join(concat_parts) + ", '}')"
 
 
 # Create Insert Triggers
@@ -70,13 +75,21 @@ def create_insert_trigger(table_name, columns):
     FOR EACH ROW
     BEGIN
         DECLARE log_user VARCHAR(255);
+        DECLARE user_type VARCHAR(20);
+        DECLARE new_data_concat TEXT;
+        
         IF @current_user IS NOT NULL THEN
             SET log_user = @current_user;
+            SET user_type = 'APP USER';
         ELSE
             SET log_user = CURRENT_USER();
+            SET user_type = 'DB USER';
         END IF;
-        INSERT INTO dfAuditLog (Table_Name, Row_Id, Log_Type, Log_By, New_Data)
-        VALUES ('{table_name}', NEW.Id, 'CREATE', log_user, {new_data_concat});
+        
+        SET new_data_concat = {new_data_concat};
+        
+        INSERT INTO tblAuditLog (Table_Name, Row_Id, Log_Type, Log_By, New_Data, User_Type)
+        VALUES ('{table_name}', NEW.Id, 'CREATE', log_user, new_data_concat, user_type);
     END;
     """
 
@@ -89,10 +102,13 @@ def create_update_trigger(table_name, columns):
     FOR EACH ROW
     BEGIN
         DECLARE log_user VARCHAR(255);
+        DECLARE user_type VARCHAR(20);
         IF @current_user IS NOT NULL THEN
             SET log_user = @current_user;
+            SET user_type = 'APP USER';
         ELSE
             SET log_user = CURRENT_USER();
+            SET user_type = 'DB USER';
         END IF;
     """
     for column in columns:
@@ -100,8 +116,8 @@ def create_update_trigger(table_name, columns):
             continue
         trigger += f"""
         IF OLD.{column} != NEW.{column} THEN
-            INSERT INTO dfAuditLog (Table_Name, Column_Name, Row_Id, Log_Type, Log_By, Old_Data, New_Data)
-            VALUES ('{table_name}', '{column}', NEW.Id, 'UPDATE', log_user, OLD.{column}, NEW.{column});
+            INSERT INTO tblAuditLog (Table_Name, Column_Name, Row_Id, Log_Type, Log_By, Old_Data, New_Data, User_Type)
+            VALUES ('{table_name}', '{column}', NEW.Id, 'UPDATE', log_user, OLD.{column}, NEW.{column}, user_type);
         END IF;
         """
     trigger += "END;"
@@ -116,13 +132,21 @@ def create_delete_trigger(table_name, columns):
     FOR EACH ROW
     BEGIN
         DECLARE log_user VARCHAR(255);
+        DECLARE user_type VARCHAR(20);
+        DECLARE old_data_concat TEXT;
+        
         IF @current_user IS NOT NULL THEN
             SET log_user = @current_user;
+            SET user_type = 'APP USER';
         ELSE
             SET log_user = CURRENT_USER();
+            SET user_type = 'DB USER';
         END IF;
-        INSERT INTO dfAuditLog (Table_Name, Row_Id, Log_Type, Log_By, old_data)
-        VALUES ('{table_name}', OLD.Id, 'DELETE', log_user, {old_data_concat});
+
+        SET old_data_concat = {old_data_concat};
+        
+        INSERT INTO tblAuditLog (Table_Name, Row_Id, Log_Type, Log_By, Old_data, User_Type)
+        VALUES ('{table_name}', OLD.Id, 'DELETE', log_user, {old_data_concat}, user_type);
     END;
     """
 
@@ -139,6 +163,8 @@ def create_audit_log_triggers():
         ]
 
         for table_name in table_names:
+            if table_name in EXEMPT_TABLES:
+                continue
             # Get columns
             columns = get_columns(db, table_name)
 

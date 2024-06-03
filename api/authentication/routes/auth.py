@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, status, Depends  # type: ignore
+from fastapi import APIRouter, status, Depends, Path  # type: ignore
 from fastapi.security import OAuth2PasswordRequestForm  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
@@ -68,11 +68,12 @@ async def login(
     response_model=TokenLevelResponse,
 )
 async def select_level(
-    church_level: str,
+    church_level: Annotated[
+        str, Path(..., description="hierarchy level code of the church to access")
+    ],
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
 ):
-
     # authenticate user
     user_access = AuthService().re_authenticate_user_access(
         church_level, current_user, db

@@ -1,18 +1,22 @@
 from typing import Annotated
 
-from fastapi import APIRouter, status, Depends  # type: ignore
+from fastapi import APIRouter, status, Depends, Path  # type: ignore
+from sqlalchemy.orm import Session  # type: ignore
 
+from ...common.database import get_db
 from ...hierarchy_mgmt.services.head_church import (
     HeadChurchServices,
     get_head_church_services,
 )
 from ...hierarchy_mgmt.models.head_church import (
-    HeadChurch,
+    HeadChurchCreate,
     HeadChurchResponse,
     HeadChurchUpdateIn,
 )
 
-head_chu_router = APIRouter(prefix="/head_church", tags=["Head Church Operations"])
+head_chu_router = APIRouter(
+    prefix="/head_church", tags=["Head Church Sub-Module Operations"]
+)
 
 """
 Head Church Routes
@@ -21,9 +25,9 @@ Head Church Routes
 - Update Head Church by Code
 """
 
-adm_head_chu_router = APIRouter(
+head_chu_adm_router = APIRouter(
     prefix="/admin/head_church",
-    tags=["Head Church Operations - Super Admin only"],
+    tags=["Head Church Sub-Module Operations - Super Admin only"],
 )
 
 """
@@ -41,17 +45,15 @@ Head Church Admin Routes
     response_model=HeadChurchResponse,
 )
 async def create_new_head_church(
-    head_church: HeadChurch,
-    head_church_services: Annotated[
-        HeadChurchServices, Depends(get_head_church_services)
-    ],
+    head_church: HeadChurchCreate,
+    db: Annotated[Session, Depends(get_db)],
 ):
-    new_head_church = await head_church_services.create_head_church(head_church)
+    new_head_church = await HeadChurchServices.create_head_church(db, head_church)
     # set response body
     response = dict(
         data=new_head_church,
         status_code=status.HTTP_201_CREATED,
-        message=f"Successsfully created new Head Church: {new_head_church.Name} with code: {new_head_church.Code}. \n Please send an email to osquaregtech@gmail.com to activate the Head Church.",
+        message=f"Successsfully created new Head Church: {new_head_church.Name} with code: {new_head_church.Code}. \n Please send an email to 'osquaregtech@gmail.com' to activate the Head Church.",
     )
     return response
 
@@ -64,7 +66,9 @@ async def create_new_head_church(
     response_model=HeadChurchResponse,
 )
 async def get_head_church_by_code(
-    code: str,
+    code: Annotated[
+        str, Path(..., description="code of the head church to be retrieved")
+    ],
     head_church_services: Annotated[
         HeadChurchServices, Depends(get_head_church_services)
     ],
@@ -87,7 +91,9 @@ async def get_head_church_by_code(
     response_model=HeadChurchResponse,
 )
 async def update_head_church_by_code(
-    code: str,
+    code: Annotated[
+        str, Path(..., description="code of the head church to be updated")
+    ],
     head_church: HeadChurchUpdateIn,
     head_church_services: Annotated[
         HeadChurchServices, Depends(get_head_church_services)
@@ -106,14 +112,16 @@ async def update_head_church_by_code(
 
 
 # Activate Head Church by Code
-@adm_head_chu_router.patch(
+@head_chu_adm_router.patch(
     "/{code}/activate",
     status_code=status.HTTP_200_OK,
     name="Activate Head Church by Code",
     response_model=HeadChurchResponse,
 )
 async def activate_head_church_by_code(
-    code: str,
+    code: Annotated[
+        str, Path(..., description="code of the head church to be activated")
+    ],
     head_church_services: Annotated[
         HeadChurchServices, Depends(get_head_church_services)
     ],
@@ -131,14 +139,16 @@ async def activate_head_church_by_code(
 
 
 # Deactivate Head Church by Code
-@adm_head_chu_router.patch(
+@head_chu_adm_router.patch(
     "/{code}/deactivate",
     status_code=status.HTTP_200_OK,
     name="Deactivate Head Church by Code",
     response_model=HeadChurchResponse,
 )
 async def deactivate_head_church_by_code(
-    code: str,
+    code: Annotated[
+        str, Path(..., description="code of the head church to be deactivated")
+    ],
     head_church_services: Annotated[
         HeadChurchServices, Depends(get_head_church_services)
     ],
@@ -156,7 +166,7 @@ async def deactivate_head_church_by_code(
 
 
 # # Get All Head Churches
-# @adm_head_chu_router.get(
+# @head_chu_adm_router.get(
 #     "/",
 #     status_code=status.HTTP_200_OK,
 #     name="Get All Head Churches",

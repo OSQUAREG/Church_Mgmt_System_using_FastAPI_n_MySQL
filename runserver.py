@@ -1,21 +1,6 @@
-# from save_openapi_json import save_openapi_spec
 import uvicorn
 
-# # # URL of the OpenAPI JSON specification
-# url = "http://127.0.0.1:8000/openapi.json"
-# # Output file to save the JSON data
-# output_file = "openapi1.json"
-# # Save the OpenAPI specification
-
-
 if __name__ == "__main__":
-    # save_openapi_spec(url, output_file)
-
-    # if os.path.exists(output_file):
-    #     print(f"File {output_file} successfully saved.")
-    # else:
-    #     print(f"Failed to save file {output_file}.")
-
     uvicorn.run(
         "api:app",
         host="localhost",

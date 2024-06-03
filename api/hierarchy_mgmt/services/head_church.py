@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import HTTPException, status, Depends  # type: ignore
 from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
 from ...authentication.models.auth import User, UserAccess
-from ...hierarchy_mgmt.models.head_church import HeadChurch, HeadChurchUpdateIn
+from ...hierarchy_mgmt.models.head_church import HeadChurchCreate, HeadChurchUpdateIn
 from ...common.database import get_db
 from ...common.dependencies import (
     get_current_user,
@@ -14,8 +14,7 @@ from ...common.dependencies import (
     set_db_current_user,
 )
 from ...common.utils import (
-    check_if_new_code_exist,
-    check_if_new_name_exist,
+    check_if_new_code_name_exist,
     set_user_access,
 )
 
@@ -40,13 +39,18 @@ class HeadChurchServices:
         self.current_user = current_user
         self.current_user_access = current_user_access
 
-    async def create_head_church(self, head_church: HeadChurch):
+    @staticmethod
+    async def create_head_church(db: Session, head_church: HeadChurchCreate):
         try:
             # check if new Code or Name already exists
-            check_if_new_code_exist(head_church.Code, "tblCLHeadChurch", self.db)
-            check_if_new_name_exist(head_church.Name, "tblCLHeadChurch", self.db)
+            check_if_new_code_name_exist(
+                head_church.Code, "tblCLHeadChurch", db, "create"
+            )
+            check_if_new_code_name_exist(
+                head_church.Name, "tblCLHeadChurch", db, "create"
+            )
             # insert new head church
-            self.db.execute(
+            db.execute(
                 text(
                     """
                     INSERT INTO tblCLHeadChurch
@@ -76,13 +80,13 @@ class HeadChurchServices:
                     Created_By=head_church.Code + "_ADMIN",
                 ),
             )
-            self.db.commit()
-            new_head_church = self.db.execute(
+            db.commit()
+            new_head_church = db.execute(
                 text("SELECT * FROM tblCLHeadChurch WHERE Id = LAST_INSERT_ID();")
             ).first()
             return new_head_church
         except Exception as err:
-            self.db.rollback()
+            db.rollback()
             raise err
 
     async def get_head_church_by_code(self, code: str):
@@ -93,8 +97,8 @@ class HeadChurchServices:
                 headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["HRCH"],
-                submodule_code=["HEAD"],
+                module_code=["ALLM", "HRCH"],
+                submodule_code=["ALLS", "HEAD"],
                 access_type=["VW", "ED"],
             )
             # fetch data from self.db
@@ -123,17 +127,27 @@ class HeadChurchServices:
                 headchurch_code=self.current_user.HeadChurch_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["HRCH"],
-                submodule_code=["HEAD"],
+                module_code=["ALLM", "HRCH"],
+                submodule_code=["ALLS", "HEAD"],
                 access_type=["ED"],
             )
             # check if code exists
             old_head_church = await self.get_head_church_by_code(code)
+            # check if head church is activated
+            if old_head_church.Is_Active == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Head Church: '{old_head_church.Name} ({old_head_church.Code})' is not activated. Please send an email to 'osquaregtech@gmail.com' to activate the Head Church.",
+                )
             # check if new Code or Name already exists
             if head_church.Code:
-                check_if_new_code_exist(head_church.Code, "tblCLHeadChurch", self.db)
+                check_if_new_code_name_exist(
+                    head_church.Code, "tblCLHeadChurch", self.db, "update", old_head_church.Code
+                )
             if head_church.Name:
-                check_if_new_name_exist(head_church.Name, "tblCLHeadChurch", self.db)
+                check_if_new_code_name_exist(
+                    head_church.Name, "tblCLHeadChurch", self.db, "update", old_head_church.Name
+                )
 
             # update the data
             self.db.execute(
@@ -248,8 +262,8 @@ class HeadChurchServices:
                 headchurch_code="ALL",
                 role_code=["SAD"],
                 level_code=["CHU"],
-                module_code=["HRCH"],
-                submodule_code=["HEAD"],
+                module_code=["ALLM", "HRCH"],
+                submodule_code=["ALLS", "HEAD"],
                 access_type=["ED"],
             )
             # check if it exists
@@ -302,8 +316,8 @@ class HeadChurchServices:
                 headchurch_code="ALL",
                 role_code=["SAD"],
                 level_code=["CHU"],
-                module_code=["HRCH"],
-                submodule_code=["HEAD"],
+                module_code=["ALLM", "HRCH"],
+                submodule_code=["ALLS", "HEAD"],
                 access_type=["ED"],
             )
             # check if it exists
