@@ -47,7 +47,7 @@ async def create_new_church(
     response = dict(
         data=new_church,
         status_code=status.HTTP_201_CREATED,
-        message=f"Successfully created Church: '{new_church.Name}', with code: '{new_church.Code}'",
+        message=f"Successfully created Church: '{new_church.Name} ({new_church.Code})'",
     )
     return response
 
@@ -68,7 +68,7 @@ async def activate_church_by_code(
     response = dict(
         data=activated_church,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully activated Church: '{activated_church.Name}' with code: '{activated_church.Code}'",
+        message=f"Successfully activated Church: '{activated_church.Name} ({activated_church.Code})'",
     )
     return response
 
@@ -89,7 +89,7 @@ async def deactivate_church_by_code(
     response = dict(
         data=deactivated_church,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully deactivated Church: '{deactivated_church.Name}' with code: '{deactivated_church.Code}'",
+        message=f"Successfully deactivated Church: '{deactivated_church.Name} ({deactivated_church.Code})'",
     )
     return response
 
@@ -110,7 +110,7 @@ async def approve_church_by_code(
     response = dict(
         data=approved_church,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully approved Church: '{approved_church.Name}' with code: '{approved_church.Code}'",
+        message=f"Successfully approved Church: '{approved_church.Name} ({approved_church.Code})'",
     )
     return response
 
@@ -134,7 +134,11 @@ async def get_all_churches(
     response = dict(
         data=churches,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully retrieved all {len(churches)} Churches",
+        message=(
+            f"Successfully retrieved {len(churches)} "
+            + ("Churches" if len(churches) > 1 else "Church")
+            + ("" if status_code is None else f", with Status: '{status_code.upper()}'")
+        ),
     )
     return response
 
@@ -159,7 +163,12 @@ async def get_churches_by_level(
     response = dict(
         data=churches,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully retrieved all {len(churches)} Churches in level: '{level_code.upper()}'",
+        message=(
+            f"Successfully retrieved {len(churches)} "
+            + ("Churches" if len(churches) > 1 else "Church")
+            + f" in level: '{level_code.upper()}'"
+            + ("" if status_code is None else f", with Status: '{status_code.upper()}'")
+        ),
     )
     return response
 
@@ -179,7 +188,7 @@ async def get_church_by_id_code(
     response = dict(
         data=church,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully retrieved Church: '{church.Name}' with code: '{church.Code}'",
+        message=f"Successfully retrieved Church: '{church.Name} ({church.Code})'",
     )
     return response
 
@@ -201,6 +210,6 @@ async def update_church_by_code(
     response = dict(
         data=updated_church,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully updated Church: '{updated_church.Name}' with code: '{updated_church.Code}'",
+        message=f"Successfully updated Church: '{updated_church.Name} ({updated_church.Code})'",
     )
     return response

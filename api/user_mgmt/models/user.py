@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional, Union
 from pydantic import BaseModel, EmailStr, SecretStr, Field  # type: ignore
 
 
@@ -17,3 +17,9 @@ class UserDetails(BaseModel):
     Created_Date: Optional[datetime] = None
     Modified_By: Optional[str] = None
     Modified_Date: Optional[datetime] = None
+
+
+class UserResponse(BaseModel):
+    status_code: int
+    message: str
+    data: Union[List[UserDetails], UserDetails, None] = None

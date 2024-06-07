@@ -68,6 +68,7 @@ class HeadChurch(HeadChurchBase, HeadChurchCode):
     Created_By: Optional[str] = None
     Modified_Date: Optional[datetime] = None
     Modified_By: Optional[str] = None
+    Id: Optional[int] = None
 
 
 class HeadChurchResponse(BaseModel):

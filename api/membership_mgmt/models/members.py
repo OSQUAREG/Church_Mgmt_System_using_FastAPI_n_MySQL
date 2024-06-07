@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional, Union
 
 from pydantic import BaseModel, Field, validator, EmailStr  # type: ignore
@@ -6,8 +6,7 @@ from ...common.utils import custom_title_case, get_phonenumber
 
 
 class MemberCode(BaseModel):
-    Code: str
-    Clergy_Code: Optional[str] = None
+    Code: Optional[str] = Field(default=None)
 
 
 class MemberBase(BaseModel):
@@ -21,15 +20,16 @@ class MemberBase(BaseModel):
     Home_Address: str = Field(
         examples=["This is the address of the Member"], max_length=500
     )
-    Date_of_Birth: str = Field(examples=["2000-12-31"])
-    Gender: str = Field(examples=["Male"], max_length=1)
-    Marital_Status: str = Field(examples=["Single"], max_length=4)
+    Date_of_Birth: date = Field(examples=["2000-12-31"])
+    Gender: str = Field(examples=["M"], max_length=1)
+    Marital_Status: str = Field(examples=["SIG"], max_length=4)
     Employ_Status: str = Field(examples=["EMPD"], max_length=4)
     Occupation: Optional[str] = Field(default=None, examples=["Doctor"], max_length=100)
     Office_Address: Optional[str] = Field(
         default=None, examples=["This is the address of the Office"], max_length=500
     )
-    State_of_Origin: str = Field(examples=["Lagos"], max_length=3)
+    State_of_Origin: str = Field(examples=["EDO"], max_length=4)
+    Country_of_Origin: str = Field(examples=["NIG"], max_length=4)
     Personal_Contact_No: Optional[str] = Field(
         default=None, examples=["+2348012345678"], max_length=25
     )
@@ -44,11 +44,12 @@ class MemberBase(BaseModel):
     Contact_Email2: Optional[EmailStr] = Field(
         default=None, examples=["john.doe@example.com"], max_length=255
     )
-    Town_Code: str = Field(max_length=4)
-    State_Code: str = Field(max_length=4)
-    Region_Code: str = Field(max_length=4)
-    Country_Code: str = Field(max_length=4)
+    Town_Code: str = Field(examples=["BEN"], max_length=4)
+    State_Code: str = Field(examples=["EDO"], max_length=4)
+    Region_Code: str = Field(examples=["SOUT"], max_length=4)
+    Country_Code: str = Field(examples=["NIG"], max_length=4)
     Type: str = Field(examples=["MBR"], max_length=3)
+    Is_Clergy: Optional[bool] = Field(default=False)
 
     @validator(
         "First_Name",
@@ -87,15 +88,19 @@ class MemberIn(MemberBranchJoinIn, MemberBase):
     pass
 
 
-class Member(MemberBranchExitIn, MemberIn, MemberCode):
+class Member(MemberIn, MemberCode):
+    Exit_Date: Optional[datetime] = Field(default=None)
+    Exit_Reason: Optional[str] = Field(default=None)
+    Exit_Note: Optional[str] = Field(default=None)
     Is_User: Optional[bool] = Field(default=False)
-    Is_Clergy: Optional[bool] = Field(default=False)
+    Clergy_Code: Optional[str] = Field(default=None)
     Is_Active: Optional[bool] = Field(default=True)
-    HeadChurch_Code: str = Field(examples=["TEST"], max_length=4)
+    HeadChurch_Code: Optional[str] = Field(examples=["TEST"], max_length=4)
     Created_Date: Optional[datetime] = None
     Created_By: Optional[str] = None
     Modified_Date: Optional[datetime] = None
     Modified_By: Optional[str] = None
+    Id: Optional[int] = None
 
 
 class MemberResponse(BaseModel):
@@ -150,7 +155,7 @@ class MemberUpdate(BaseModel):
     Home_Address: Optional[str] = Field(
         default=None, examples=["This is the address of the Member"], max_length=500
     )
-    Date_of_Birth: Optional[str] = Field(default=None, examples=["2000-12-31"])
+    Date_of_Birth: Optional[date] = Field(default=None, examples=["2000-12-31"])
     Gender: Optional[str] = Field(default=None, examples=["Male"], max_length=1)
     Marital_Status: Optional[str] = Field(
         default=None, examples=["Single"], max_length=3
@@ -160,8 +165,9 @@ class MemberUpdate(BaseModel):
     Office_Address: Optional[str] = Field(
         default=None, examples=["This is the address of the Office"], max_length=500
     )
-    State_of_Origin: Optional[str] = Field(
-        default=None, examples=["Lagos"], max_length=3
+    State_of_Origin: Optional[str] = Field(default=None, examples=["EDO"], max_length=4)
+    Country_of_Origin: Optional[str] = Field(
+        default=None, examples=["NIG"], max_length=4
     )
     Personal_Contact_No: Optional[str] = Field(
         default=None, examples=["+2348012345678"], max_length=25
@@ -182,12 +188,13 @@ class MemberUpdate(BaseModel):
         default=None, examples=["john.doe@example.com"], max_length=255
     )
     Is_User: Optional[bool] = Field(default=False)
-    Town_Code: Optional[str] = Field(default=None, max_length=4)
-    State_Code: Optional[str] = Field(default=None, max_length=4)
-    Region_Code: Optional[str] = Field(default=None, max_length=4)
-    Country_Code: Optional[str] = Field(default=None, max_length=4)
+    Town_Code: Optional[str] = Field(default=None, examples=["BEN"], max_length=4)
+    State_Code: Optional[str] = Field(default=None, examples=["EDO"], max_length=4)
+    Region_Code: Optional[str] = Field(default=None, examples=["SOUT"], max_length=4)
+    Country_Code: Optional[str] = Field(default=None, examples=["NIG"], max_length=4)
     Type: Optional[str] = Field(default=None, examples=["MBR"], max_length=3)
-    Is_Clergy: Optional[bool] = Field(default=False)
+    # Is_Clergy: Optional[bool] = Field(default=False)
+    # Clergy_Code: Optional[str] = Field(default=None)
     HeadChurch_Code: Optional[str] = Field(
         default=None, examples=["TEST"], max_length=4
     )

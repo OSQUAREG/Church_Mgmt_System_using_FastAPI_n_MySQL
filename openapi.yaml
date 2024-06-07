@@ -1,0 +1,4103 @@
+---
+openapi: 3.1.0
+info:
+  title: ChurchMan - Church Management System
+  description: >
+    
+    The Church Management System (ChMS) is an application that helps the Church manage her members, groups, events, assets, mass communication and finances (tithes, offerings, donations, seeds etc).
+
+
+    # Modules
+
+
+    ## 1. Church Administration (_in progress_)
+
+    This manages the Church Hierarchy, Head Church, Churches at different levels and Church Leads, Groups and Sub-Groups.
+
+    This has the folowing Sub-Modules and endpoints:
+
+
+    ### 1.1 Herarchy Sub-Module
+
+    <input type="checkbox" checked> Get All Hierarchies &nbsp;
+
+    <input type="checkbox" checked> Get Hierarchy by Code &nbsp;
+
+    <input type="checkbox" checked> Activate Hierarchy by Code &nbsp;
+
+    <input type="checkbox" checked> Deactivate Hierarchy by Code &nbsp;
+
+    <input type="checkbox" checked> Update Hierarchy by Code &nbsp;
+
+    <hr>
+
+
+    ### 1.2 Head Church Sub-Module
+
+    <input type="checkbox" checked> Create New Head Church &nbsp;
+
+    <input type="checkbox" checked> Get Head Church by Code &nbsp;
+
+    <input type="checkbox" checked> Update Head Church by Code &nbsp;
+
+    <input type="checkbox" checked> Activate Head Church by Code (Super Admin only) &nbsp;
+
+    <input type="checkbox" checked> Deactivate Head Church by Code (Super Admin only) &nbsp;
+
+    <hr>
+
+
+    ### 1.3 Churches Sub-Module
+
+    <input type="checkbox" checked> Create New Church &nbsp;
+
+    <input type="checkbox" checked> Approved Church by Code &nbsp;
+
+    <input type="checkbox" checked> Get All Churches &nbsp;
+
+    <input type="checkbox" checked> Get Churches by Level &nbsp;
+
+    <input type="checkbox" checked> Get Church by Code &nbsp;
+
+    <input type="checkbox" checked> Update Church by Code &nbsp;
+
+    <input type="checkbox" checked> Activate Church by Code &nbsp;
+
+    <input type="checkbox" checked> Deactivate Church by Code &nbsp;
+
+    <hr>
+
+
+    ### 1.4 Church Leads Sub-Module
+
+    <input type="checkbox" checked> Get Church Leads by Code &nbsp;
+
+    <input type="checkbox" checked> Unmap Church Leads by Code &nbsp;
+
+    <input type="checkbox" checked> Map Church Leads by Code &nbsp;
+
+    <input type="checkbox" checked> Get Churches by Lead Code &nbsp;
+
+    <hr>
+
+
+    ### 1.5 Groups Sub-Module
+
+    <input type="checkbox" unchecked disabled> Create New Group &nbsp;
+
+    <input type="checkbox" unchecked disabled> Get All Groups &nbsp;
+
+    <input type="checkbox" unchecked disabled> Get Group by Code &nbsp;
+
+    <input type="checkbox" unchecked disabled> Get Group by Church Code &nbsp;
+
+    <input type="checkbox" unchecked disabled> Get Groups by Level Code &nbsp;
+
+    <input type="checkbox" unchecked disabled> Update Group by Code &nbsp;
+
+    <input type="checkbox" unchecked disabled> Activate Group by Code &nbsp;
+
+    <input type="checkbox" unchecked disabled> Deactivate Group by Code &nbsp;
+
+    <hr>
+
+    <br>
+
+
+    ## 2. Members Management (_in progress_) 
+
+    This manages Members, Church Positions, Member Positions.
+
+
+    ### 2.1 Members Sub-Module
+
+    <input type="checkbox" checked> Create New Member &nbsp;
+
+    <input type="checkbox" checked> Get All Members &nbsp;
+
+    <input type="checkbox" checked> Get Member by Code &nbsp;
+
+    <input type="checkbox" checked> Get Current User Member &nbsp;
+
+    <input type="checkbox" checked> Get Members by Church Code &nbsp;
+
+    <input type="checkbox" checked> Get Members by Level Code &nbsp;
+
+    <input type="checkbox" checked> Update Member by Code &nbsp;
+
+    <input type="checkbox" checked> Update Current User Member &nbsp;
+
+    <input type="checkbox" checked> Activate Member by Code &nbsp;
+
+    <input type="checkbox" checked> Deactivate Member by Code &nbsp;
+
+    <hr>
+
+    <br>
+
+
+    ### 2.2 Member Positions Sub-Module
+
+    <input type="checkbox" unchecked disabled> Create New Member Position &nbsp;
+
+    <input type="checkbox" unchecked disabled> Get All Member Positions &nbsp;
+
+    <input type="checkbox" unchecked disabled> Get Member Position by Code &nbsp;
+
+    <input type="checkbox" unchecked disabled> Get Member Positions by Member Code &nbsp;
+
+    <input type="checkbox" unchecked disabled> Update Member Position by Code &nbsp;
+
+    <input type="checkbox" unchecked disabled> Activate Member Position by Code &nbsp;
+
+    <input type="checkbox" unchecked disabled> Deactivate Member Position by Code &nbsp;
+
+    <hr>
+
+    <br>
+
+
+
+    ## 3. User Management (_in progress_)
+
+    This managers users, user roles, user access to modules and submodules.
+
+
+    ## 4. Asset Management (_not implemented_)
+
+    This manages assets, asset types, assets allocation and locations.
+
+
+    ## 5. Event Management (_not implemented_)
+
+    This manages program events and events details.
+
+
+    ## 6. Finance Management (_not implemented_)
+
+    This manages tithes, offerings, donations, seeds etc.
+
+
+    ## 7. Communication Management (_not implemented_)
+
+    This manages all communication channels and messages.
+
+
+    <br>
+  contact:
+    name: Gregory Ogbemudia
+    email: gregory.ogbemduia@gmail.com
+  license:
+    name: MIT License
+    identifier: MIT
+  version: 0.0.1
+paths:
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication Operations
+      summary: Login User
+      operationId: Login_User_api_v1_auth_login_post
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/Body_Login_User_api_v1_auth_login_post"
+        required: true
+      responses:
+        "201":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/auth/select_level/{church_level}":
+    post:
+      tags:
+        - Authentication Operations
+      summary: Select Church Level/Re-Authenticate
+      operationId: Select_Church_Level_Re_authenticate_api_v1_auth_select_level__church_level__post
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: church_level
+          in: path
+          required: true
+          schema:
+            type: string
+            description: hierarchy level code of the church to access
+            title: Church Level
+          description: hierarchy level code of the church to access
+      responses:
+        "201":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenLevelResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  /api/v1/auth/users/me:
+    get:
+      tags:
+        - Authentication Operations
+      summary: Get Current Active User
+      operationId: Get_Current_Active_User_api_v1_auth_users_me_get
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/UserAccess"
+                type: array
+                title: Response Get Current Active User Api V1 Auth Users Me Get
+      security:
+        - OAuth2PasswordBearer: []
+  /api/v1/auth/user_levels/me:
+    get:
+      tags:
+        - Authentication Operations
+      summary: Get Current Active User Levels
+      operationId: Get_Current_Active_User_Levels_api_v1_auth_user_levels_me_get
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/UserLevels"
+                type: array
+                title: Response Get Current Active User Levels Api V1 Auth User Levels Me Get
+      security:
+        - OAuth2PasswordBearer: []
+  /api/v1/admin/hierarchy/:
+    get:
+      tags:
+        - Hierarchy Sub-Module Operations
+      summary: Get All Hierarchies
+      operationId: Get_All_Hierarchies_api_v1_admin_hierarchy__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: boolean
+              - type: "null"
+            title: Is Active
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HierarchyResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/hierarchy/{code}":
+    get:
+      tags:
+        - Hierarchy Sub-Module Operations
+      summary: Get Hierarchy By Code
+      operationId: Get_Hierarchy_by_Code_api_v1_admin_hierarchy__code__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Code of the hierarchy to be retrieved
+            title: Code
+          description: Code of the hierarchy to be retrieved
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HierarchyResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/hierarchy/{code}/activate":
+    patch:
+      tags:
+        - Hierarchy Sub-Module Operations
+      summary: Activate Hierarchy By Code
+      operationId: Activate_Hierarchy_by_Code_api_v1_admin_hierarchy__code__activate_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Code of the hierarchy to be activated
+            title: Code
+          description: Code of the hierarchy to be activated
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HierarchyResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/hierarchy/{code}/deactivate":
+    patch:
+      tags:
+        - Hierarchy Sub-Module Operations
+      summary: Deactivate Hierarchy By Code
+      operationId: Deactivate_Hierarchy_by_Code_api_v1_admin_hierarchy__code__deactivate_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Code of the hierarchy to be deactivated
+            title: Code
+          description: Code of the hierarchy to be deactivated
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HierarchyResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/hierarchy/{code}/update":
+    put:
+      tags:
+        - Hierarchy Sub-Module Operations
+      summary: Update Hierarchy By Code
+      operationId: Update_Hierarchy_by_Code_api_v1_admin_hierarchy__code__update_put
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Code of the hierarchy to be updated
+            title: Code
+          description: Code of the hierarchy to be updated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HierarchyUpdate"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HierarchyResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/head_church/{code}/activate":
+    patch:
+      tags:
+        - Head Church Sub-Module Operations - Super Admin only
+      summary: Activate Head Church By Code
+      operationId: Activate_Head_Church_by_Code_api_v1_admin_head_church__code__activate_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the head church to be activated
+            title: Code
+          description: code of the head church to be activated
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeadChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/head_church/{code}/deactivate":
+    patch:
+      tags:
+        - Head Church Sub-Module Operations - Super Admin only
+      summary: Deactivate Head Church By Code
+      operationId: Deactivate_Head_Church_by_Code_api_v1_admin_head_church__code__deactivate_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the head church to be deactivated
+            title: Code
+          description: code of the head church to be deactivated
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeadChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  /api/v1/head_church/create:
+    post:
+      tags:
+        - Head Church Sub-Module Operations
+      summary: Create New Head Church
+      operationId: Create_New_Head_Church_api_v1_head_church_create_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HeadChurchCreate"
+        required: true
+      responses:
+        "201":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeadChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/head_church/{code}":
+    get:
+      tags:
+        - Head Church Sub-Module Operations
+      summary: Get Head Church By Code
+      operationId: Get_Head_Church_by_Code_api_v1_head_church__code__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the head church to be retrieved
+            title: Code
+          description: code of the head church to be retrieved
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeadChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/head_church/update/{code}":
+    put:
+      tags:
+        - Head Church Sub-Module Operations
+      summary: Update Head Church By Code
+      operationId: Update_Head_Church_by_Code_api_v1_head_church_update__code__put
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the head church to be updated
+            title: Code
+          description: code of the head church to be updated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HeadChurchUpdateIn"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeadChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/church/create/{level_code}":
+    post:
+      tags:
+        - Churches Sub-Module Operations
+      summary: Create New Church
+      operationId: Create_New_Church_api_v1_church_create__level_code__post
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: level_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: hierarchical level of the new church
+            title: Level Code
+          description: hierarchical level of the new church
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChurchBase"
+      responses:
+        "201":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/church/{id_code}/approve":
+    patch:
+      tags:
+        - Churches Sub-Module Operations
+      summary: Approve Church By Id Or Code
+      operationId: Approve_Church_by_Id_or_Code_api_v1_church__id_code__approve_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: id_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the church to be approved
+            title: Id Code
+          description: code of the church to be approved
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  /api/v1/church/:
+    get:
+      tags:
+        - Churches Sub-Module Operations
+      summary: Get All Churches
+      operationId: Get_All_Churches_api_v1_church__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: status_code
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: "null"
+            description: "(Optional) status of the churches to retrieve: ACT-active,
+              INA-inactive, AWT-awaiting, APR-approved, REJ-rejected"
+            title: Status Code
+          description: "(Optional) status of the churches to retrieve: ACT-active,
+            INA-inactive, AWT-awaiting, APR-approved, REJ-rejected"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/church/level/{level_code}":
+    get:
+      tags:
+        - Churches Sub-Module Operations
+      summary: Get Churches By Level
+      operationId: Get_Churches_by_Level_api_v1_church_level__level_code__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: level_code
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Level Code
+        - name: status_code
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: "null"
+            description: "(Optional) status of the churches to retrieve: ACT-active,
+              INA-inactive, AWT-awaiting, APR-approved, REJ-rejected"
+            title: Status Code
+          description: "(Optional) status of the churches to retrieve: ACT-active,
+            INA-inactive, AWT-awaiting, APR-approved, REJ-rejected"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/church/{id_code}":
+    get:
+      tags:
+        - Churches Sub-Module Operations
+      summary: Get Church By Id Or Code
+      operationId: Get_Church_by_Id_or_Code_api_v1_church__id_code__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: id_code
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Id Code
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/church/{code}/update":
+    put:
+      tags:
+        - Churches Sub-Module Operations
+      summary: Update Church By Code
+      operationId: Update_Church_by_Code_api_v1_church__code__update_put
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChurchUpdate"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/church/{code}/activate":
+    patch:
+      tags:
+        - Churches Sub-Module Operations - Admin only
+      summary: Activate Church By Code
+      operationId: Activate_Church_by_Code_api_v1_admin_church__code__activate_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the church to be activated
+            title: Code
+          description: code of the church to be activated
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/church/{code}/deactivate":
+    patch:
+      tags:
+        - Churches Sub-Module Operations - Admin only
+      summary: Deactivate Church By Code
+      operationId: Deactivate_Church_by_Code_api_v1_admin_church__code__deactivate_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the church to be deactivated
+            title: Code
+          description: code of the church to be deactivated
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/church_leads/{church_code}":
+    get:
+      tags:
+        - Church Leads Sub-Module Operations
+      summary: Get Church Lead
+      operationId: Get_Church_Lead_api_v1_church_leads__church_code__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: church_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the church mapped
+            title: Church Code
+          description: code of the church mapped
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: boolean
+              - type: "null"
+            title: Is Active
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchLeadsResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/church_leads/{church_code}/{lead_code}/approve":
+    patch:
+      tags:
+        - Church Leads Sub-Module Operations
+      summary: Approve Church Lead By Code
+      operationId: Approve_Church_Lead_by_Code_api_v1_church_leads__church_code___lead_code__approve_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: church_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the church mapped
+            title: Church Code
+          description: code of the church mapped
+        - name: lead_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the lead church
+            title: Lead Code
+          description: code of the lead church
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchLeadsResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/church_leads/{lead_code}/churches":
+    get:
+      tags:
+        - Church Leads Sub-Module Operations
+      summary: Get All Churches By Leads Code
+      operationId: Get_All_Churches_by_Leads_Code_api_v1_church_leads__lead_code__churches_get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: lead_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the lead church
+            title: Lead Code
+          description: code of the lead church
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: boolean
+              - type: "null"
+            title: Is Active
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchLeadsResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/church_leads/{church_code}/branches":
+    get:
+      tags:
+        - Church Leads Sub-Module Operations
+      summary: Get Branches By Church
+      operationId: Get_Branches_by_Church_api_v1_church_leads__church_code__branches_get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: church_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the church to retrieve branches
+            title: Church Code
+          description: code of the church to retrieve branches
+        - name: status_code
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: "null"
+            description: "(Optional) status of the branches to retrieve: ACT-active,
+              INA-inactive, AWT-awaiting, APR-approved, REJ-rejected"
+            title: Status Code
+          description: "(Optional) status of the branches to retrieve: ACT-active,
+            INA-inactive, AWT-awaiting, APR-approved, REJ-rejected"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/church_leads/{church_code}/unmap":
+    patch:
+      tags:
+        - Church Leads Sub-Module Operations - Admin only
+      summary: Unmap Church Lead
+      operationId: Unmap_Church_Lead_api_v1_admin_church_leads__church_code__unmap_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: church_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the church to be unmaped
+            title: Church Code
+          description: code of the church to be unmaped
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchLeadsResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/church_leads/{church_code}/map/{leadchurch_code}":
+    post:
+      tags:
+        - Church Leads Sub-Module Operations - Admin only
+      summary: Map Church Lead
+      operationId: Map_Church_Lead_api_v1_admin_church_leads__church_code__map__leadchurch_code__post
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: church_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the church to be mapped
+            title: Church Code
+          description: code of the church to be mapped
+        - name: lead_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the church lead to map to
+            title: Lead Code
+          description: code of the church lead to map to
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchLeadsResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  /api/v1/members/:
+    get:
+      tags:
+        - Members Sub-Module Operations
+      summary: Get All Members
+      operationId: Get_All_Members_api_v1_members__get
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+      security:
+        - OAuth2PasswordBearer: []
+  "/api/v1/members/{code}":
+    get:
+      tags:
+        - Members Sub-Module Operations
+      summary: Get Member By Code
+      operationId: Get_Member_by_Code_api_v1_members__code__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Code
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  /api/v1/members/current:
+    get:
+      tags:
+        - Members Sub-Module Operations
+      summary: Get Current User Member
+      operationId: Get_Current_User_Member_api_v1_members_current_get
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+      security:
+        - OAuth2PasswordBearer: []
+  "/api/v1/members/church/{church_code}":
+    get:
+      tags:
+        - Members Sub-Module Operations
+      summary: Get Members By Church Code
+      operationId: Get_Members_by_Church_Code_api_v1_members_church__church_code__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: church_code
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Church Code
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/members/level/{level_code}":
+    get:
+      tags:
+        - Members Sub-Module Operations
+      summary: Get Members By Level Code
+      operationId: Get_Members_by_Level_Code_api_v1_members_level__level_code__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: level_code
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Level Code
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/members/{code}/update":
+    put:
+      tags:
+        - Members Sub-Module Operations
+      summary: Update Member By Code
+      operationId: Update_Member_by_Code_api_v1_members__code__update_put
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: member_code
+          in: query
+          required: true
+          schema:
+            type: string
+            title: Member Code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberUpdate"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  /api/v1/members/current/update:
+    put:
+      tags:
+        - Members Sub-Module Operations
+      summary: Update Current User Member
+      operationId: Update_Current_User_Member_api_v1_members_current_update_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberUpdate"
+        required: true
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+      security:
+        - OAuth2PasswordBearer: []
+  "/api/v1/admin/members/{branch_code}/create":
+    post:
+      tags:
+        - Members Sub-Module Operations - Admin only
+      summary: Create New Member
+      operationId: Create_New_Member_api_v1_admin_members__branch_code__create_post
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: branch_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the church branch
+            title: Branch Code
+          description: code of the church branch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberIn"
+      responses:
+        "201":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/members/{member_code}/deactivate":
+    patch:
+      tags:
+        - Members Sub-Module Operations - Admin only
+      summary: Deactivate Member By Code
+      operationId: Deactivate_Member_by_Code_api_v1_admin_members__member_code__deactivate_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: member_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the member to be deactivated
+            title: Member Code
+          description: code of the member to be deactivated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberBranchExit"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/members/{member_code}/activate":
+    patch:
+      tags:
+        - Members Sub-Module Operations - Admin only
+      summary: Activate Member By Code
+      operationId: Activate_Member_by_Code_api_v1_admin_members__member_code__activate_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: member_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the member to be activated
+            title: Member Code
+          description: code of the member to be activated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberBranchUpdate"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/member_church/{member_code}/church/{church_code}":
+    get:
+      tags:
+        - Member Church Sub-Module Operations
+      summary: Get Member Church By Code
+      operationId: Get_Member_Church_by_Code_api_v1_member_church__member_code__church__church_code__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: member_code
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Member Code
+        - name: church_code
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Church Code
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: boolean
+              - type: "null"
+            title: Is Active
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberBranchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/member_church/{member_code}/churches":
+    get:
+      tags:
+        - Member Church Sub-Module Operations
+      summary: Get Member'S All Churches
+      operationId: Get_Member_s_All_Churches_api_v1_member_church__member_code__churches_get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: member_code
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Member Code
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: boolean
+              - type: "null"
+            title: Is Active
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberBranchResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/member_church/church/{member_code}/exit":
+    patch:
+      tags:
+        - Member Church Sub-Module Operations - Admin only
+      summary: Exit Member From Church
+      operationId: Exit_Member_From_Church_api_v1_admin_member_church_church__member_code__exit_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: member_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of member to be exited
+            title: Member Code
+          description: code of member to be exited
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberBranchExit"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  /api/v1/admin/member_church/church/exit_all:
+    patch:
+      tags:
+        - Member Church Sub-Module Operations - Admin only
+      summary: Exit Member From All Churches
+      operationId: Exit_Member_From_All_Churches_api_v1_admin_member_church_church_exit_all_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: member_code
+          in: query
+          required: true
+          schema:
+            type: string
+            title: Member Code
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/admin/member_church/church/{member_code}/join":
+    patch:
+      tags:
+        - Member Church Sub-Module Operations - Admin only
+      summary: Join Member To Church
+      operationId: Join_Member_To_Church_api_v1_admin_member_church_church__member_code__join_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: member_code
+          in: path
+          required: true
+          schema:
+            type: string
+            description: code of the member to be joined
+            title: Member Code
+          description: code of the member to be joined
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberBranchJoin"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  "/api/v1/user/member/{member_code}":
+    post:
+      tags:
+        - Users Operations
+      summary: Create User From Member
+      operationId: Create_User_From_Member_api_v1_user_member__member_code__post
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: member_code
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Member Code
+      responses:
+        "201":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+components:
+  schemas:
+    Body_Login_User_api_v1_auth_login_post:
+      properties:
+        grant_type:
+          anyOf:
+            - type: string
+              pattern: password
+            - type: "null"
+          title: Grant Type
+        username:
+          type: string
+          title: Username
+        password:
+          type: string
+          title: Password
+        scope:
+          type: string
+          title: Scope
+          default: ""
+        client_id:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Client Id
+        client_secret:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Client Secret
+      type: object
+      required:
+        - username
+        - password
+      title: Body_Login_User_api_v1_auth_login_post
+    Church:
+      properties:
+        Id:
+          type: integer
+          title: Id
+        Code:
+          anyOf:
+            - type: string
+              maxLength: 18
+            - type: "null"
+          title: Code
+          examples:
+            - TEST-AAA-000000000
+        Name:
+          type: string
+          maxLength: 255
+          title: Name
+          examples:
+            - Test Church
+        Alt_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Alt Name
+          examples:
+            - Test Church Alternate Name
+        Address:
+          type: string
+          maxLength: 255
+          title: Address
+          examples:
+            - This is the address of the Church
+        Founding_Date:
+          anyOf:
+            - type: string
+              format: date
+            - type: "null"
+          title: Founding Date
+          examples:
+            - 2000-12-31
+        About:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: About
+          examples:
+            - This is about the Church
+        Mission:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Mission
+          examples:
+            - This is the mission of the Church
+        Vision:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Vision
+          examples:
+            - This is the vision of the Church
+        Motto:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Motto
+          examples:
+            - This is the moto of the Church
+        Contact_No:
+          type: string
+          maxLength: 25
+          minLength: 7
+          format: phone
+          title: Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No2:
+          anyOf:
+            - type: string
+              maxLength: 25
+              minLength: 7
+              format: phone
+            - type: "null"
+          title: Contact No2
+          examples:
+            - "+2348012345678"
+        Contact_Email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Contact Email
+          examples:
+            - john.doe@example.com
+        Contact_Email2:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Contact Email2
+          examples:
+            - john.doe2@example.com
+        Town_Code:
+          type: string
+          maxLength: 4
+          title: Town Code
+          examples:
+            - BEN
+        State_Code:
+          type: string
+          maxLength: 4
+          title: State Code
+          examples:
+            - EDO
+        Region_Code:
+          type: string
+          maxLength: 4
+          title: Region Code
+          examples:
+            - SOUT
+        Country_Code:
+          type: string
+          maxLength: 4
+          title: Country Code
+          examples:
+            - NIG
+        Status:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Status
+        Status_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Status Date
+        Status_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Status By
+        Level_Code:
+          type: string
+          title: Level Code
+        HeadChurch_Code:
+          type: string
+          title: Headchurch Code
+        Is_Active:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Active
+          default: true
+        Created_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Created Date
+        Created_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Created By
+        Modified_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Modified Date
+        Modified_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Modified By
+      type: object
+      required:
+        - Id
+        - Name
+        - Address
+        - Contact_No
+        - Contact_Email
+        - Town_Code
+        - State_Code
+        - Region_Code
+        - Country_Code
+        - Level_Code
+        - HeadChurch_Code
+      title: Church
+    ChurchBase:
+      properties:
+        Name:
+          type: string
+          maxLength: 255
+          title: Name
+          examples:
+            - Test Church
+        Alt_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Alt Name
+          examples:
+            - Test Church Alternate Name
+        Address:
+          type: string
+          maxLength: 255
+          title: Address
+          examples:
+            - This is the address of the Church
+        Founding_Date:
+          anyOf:
+            - type: string
+              format: date
+            - type: "null"
+          title: Founding Date
+          examples:
+            - 2000-12-31
+        About:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: About
+          examples:
+            - This is about the Church
+        Mission:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Mission
+          examples:
+            - This is the mission of the Church
+        Vision:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Vision
+          examples:
+            - This is the vision of the Church
+        Motto:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Motto
+          examples:
+            - This is the moto of the Church
+        Contact_No:
+          type: string
+          maxLength: 25
+          minLength: 7
+          format: phone
+          title: Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No2:
+          anyOf:
+            - type: string
+              maxLength: 25
+              minLength: 7
+              format: phone
+            - type: "null"
+          title: Contact No2
+          examples:
+            - "+2348012345678"
+        Contact_Email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Contact Email
+          examples:
+            - john.doe@example.com
+        Contact_Email2:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Contact Email2
+          examples:
+            - john.doe2@example.com
+        Town_Code:
+          type: string
+          maxLength: 4
+          title: Town Code
+          examples:
+            - BEN
+        State_Code:
+          type: string
+          maxLength: 4
+          title: State Code
+          examples:
+            - EDO
+        Region_Code:
+          type: string
+          maxLength: 4
+          title: Region Code
+          examples:
+            - SOUT
+        Country_Code:
+          type: string
+          maxLength: 4
+          title: Country Code
+          examples:
+            - NIG
+      type: object
+      required:
+        - Name
+        - Address
+        - Contact_No
+        - Contact_Email
+        - Town_Code
+        - State_Code
+        - Region_Code
+        - Country_Code
+      title: ChurchBase
+    ChurchLeads:
+      properties:
+        Church_Code:
+          type: string
+          title: Church Code
+        Level_Code:
+          type: string
+          title: Level Code
+        LeadChurch_Code:
+          type: string
+          title: Leadchurch Code
+        LeadChurch_Level:
+          type: string
+          title: Leadchurch Level
+        Is_Active:
+          type: boolean
+          title: Is Active
+        Start_Date:
+          type: string
+          format: date-time
+          title: Start Date
+        End_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: End Date
+        Status:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Status
+        Status_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Status Date
+        Status_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Status By
+        HeadChurch_Code:
+          type: string
+          title: Headchurch Code
+        Created_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Created Date
+        Created_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Created By
+        Modified_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Modified Date
+        Modified_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Modified By
+      type: object
+      required:
+        - Church_Code
+        - Level_Code
+        - LeadChurch_Code
+        - LeadChurch_Level
+        - Is_Active
+        - Start_Date
+        - HeadChurch_Code
+      title: ChurchLeads
+    ChurchLeadsResponse:
+      properties:
+        status_code:
+          type: integer
+          title: Status Code
+        message:
+          type: string
+          title: Message
+        data:
+          anyOf:
+            - items:
+                $ref: "#/components/schemas/ChurchLeads"
+              type: array
+            - $ref: "#/components/schemas/ChurchLeads"
+            - type: "null"
+          title: Data
+      type: object
+      required:
+        - status_code
+        - message
+      title: ChurchLeadsResponse
+    ChurchResponse:
+      properties:
+        status_code:
+          type: integer
+          title: Status Code
+        message:
+          type: string
+          title: Message
+        data:
+          anyOf:
+            - items:
+                $ref: "#/components/schemas/Church"
+              type: array
+            - $ref: "#/components/schemas/Church"
+            - type: "null"
+          title: Data
+      type: object
+      required:
+        - status_code
+        - message
+      title: ChurchResponse
+    ChurchUpdate:
+      properties:
+        Name:
+          type: string
+          maxLength: 255
+          title: Name
+          examples:
+            - Test Church
+        Alt_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Alt Name
+          examples:
+            - Test Church Alternate Name
+        Address:
+          type: string
+          maxLength: 255
+          title: Address
+          examples:
+            - This is the address of the Church
+        Founding_Date:
+          anyOf:
+            - type: string
+              format: date
+            - type: "null"
+          title: Founding Date
+          examples:
+            - 2000-12-31
+        About:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: About
+          examples:
+            - This is about the Church
+        Mission:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Mission
+          examples:
+            - This is the mission of the Church
+        Vision:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Vision
+          examples:
+            - This is the vision of the Church
+        Motto:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Motto
+          examples:
+            - This is the motto of the Church
+        Contact_No:
+          type: string
+          maxLength: 25
+          minLength: 7
+          format: phone
+          title: Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No2:
+          anyOf:
+            - type: string
+              maxLength: 25
+              minLength: 7
+              format: phone
+            - type: "null"
+          title: Contact No2
+          examples:
+            - "+2348012345678"
+        Contact_Email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Contact Email
+          examples:
+            - john.doe@example.com
+        Contact_Email2:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Contact Email2
+          examples:
+            - john.doe2@example.com
+        Town_Code:
+          type: string
+          maxLength: 4
+          title: Town Code
+          examples:
+            - BEN
+        State_Code:
+          type: string
+          maxLength: 4
+          title: State Code
+          examples:
+            - EDO
+        Region_Code:
+          type: string
+          maxLength: 4
+          title: Region Code
+          examples:
+            - SOUT
+        Country_Code:
+          type: string
+          maxLength: 4
+          title: Country Code
+          examples:
+            - NIG
+      type: object
+      title: ChurchUpdate
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: "#/components/schemas/ValidationError"
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HeadChurch:
+      properties:
+        Code:
+          type: string
+          maxLength: 4
+          title: Code
+          examples:
+            - TEST
+        Name:
+          type: string
+          maxLength: 255
+          title: Name
+          examples:
+            - Test Church
+        Alt_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Alt Name
+          examples:
+            - Test Church Alternate Name
+        Address:
+          type: string
+          maxLength: 255
+          title: Address
+          examples:
+            - This is the address of the Church
+        Founding_Date:
+          anyOf:
+            - type: string
+              format: date
+            - type: "null"
+          title: Founding Date
+          examples:
+            - 2000-12-31
+        About:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: About
+          examples:
+            - This is about the Church
+        Mission:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Mission
+          examples:
+            - This is the mission of the Church
+        Vision:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Vision
+          examples:
+            - This is the vision of the Church
+        Motto:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Motto
+          examples:
+            - This is the moto of the Church
+        Contact_No:
+          type: string
+          maxLength: 25
+          minLength: 7
+          format: phone
+          title: Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No2:
+          anyOf:
+            - type: string
+              maxLength: 25
+              minLength: 7
+              format: phone
+            - type: "null"
+          title: Contact No2
+          examples:
+            - "+2348012345678"
+        Contact_Email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Contact Email
+          examples:
+            - john.doe@example.com
+        Contact_Email2:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Contact Email2
+          examples:
+            - john.doe2@example.com
+        Town_Code:
+          type: string
+          maxLength: 4
+          title: Town Code
+          examples:
+            - BEN
+        State_Code:
+          type: string
+          maxLength: 4
+          title: State Code
+          examples:
+            - EDO
+        Region_Code:
+          type: string
+          maxLength: 4
+          title: Region Code
+          examples:
+            - SOUT
+        Country_Code:
+          type: string
+          maxLength: 4
+          title: Country Code
+          examples:
+            - NIG
+        Is_Active:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Active
+          default: true
+        Created_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Created Date
+        Created_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Created By
+        Modified_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Modified Date
+        Modified_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Modified By
+      type: object
+      required:
+        - Code
+        - Name
+        - Address
+        - Contact_No
+        - Contact_Email
+        - Town_Code
+        - State_Code
+        - Region_Code
+        - Country_Code
+      title: HeadChurch
+    HeadChurchCreate:
+      properties:
+        Code:
+          type: string
+          maxLength: 4
+          title: Code
+          examples:
+            - TEST
+        Name:
+          type: string
+          maxLength: 255
+          title: Name
+          examples:
+            - Test Church
+        Alt_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Alt Name
+          examples:
+            - Test Church Alternate Name
+        Address:
+          type: string
+          maxLength: 255
+          title: Address
+          examples:
+            - This is the address of the Church
+        Founding_Date:
+          anyOf:
+            - type: string
+              format: date
+            - type: "null"
+          title: Founding Date
+          examples:
+            - 2000-12-31
+        About:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: About
+          examples:
+            - This is about the Church
+        Mission:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Mission
+          examples:
+            - This is the mission of the Church
+        Vision:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Vision
+          examples:
+            - This is the vision of the Church
+        Motto:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Motto
+          examples:
+            - This is the moto of the Church
+        Contact_No:
+          type: string
+          maxLength: 25
+          minLength: 7
+          format: phone
+          title: Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No2:
+          anyOf:
+            - type: string
+              maxLength: 25
+              minLength: 7
+              format: phone
+            - type: "null"
+          title: Contact No2
+          examples:
+            - "+2348012345678"
+        Contact_Email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Contact Email
+          examples:
+            - john.doe@example.com
+        Contact_Email2:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Contact Email2
+          examples:
+            - john.doe2@example.com
+        Town_Code:
+          type: string
+          maxLength: 4
+          title: Town Code
+          examples:
+            - BEN
+        State_Code:
+          type: string
+          maxLength: 4
+          title: State Code
+          examples:
+            - EDO
+        Region_Code:
+          type: string
+          maxLength: 4
+          title: Region Code
+          examples:
+            - SOUT
+        Country_Code:
+          type: string
+          maxLength: 4
+          title: Country Code
+          examples:
+            - NIG
+      type: object
+      required:
+        - Code
+        - Name
+        - Address
+        - Contact_No
+        - Contact_Email
+        - Town_Code
+        - State_Code
+        - Region_Code
+        - Country_Code
+      title: HeadChurchCreate
+    HeadChurchResponse:
+      properties:
+        status_code:
+          type: integer
+          title: Status Code
+        message:
+          type: string
+          title: Message
+        data:
+          anyOf:
+            - items:
+                $ref: "#/components/schemas/HeadChurch"
+              type: array
+            - $ref: "#/components/schemas/HeadChurch"
+            - type: "null"
+          title: Data
+      type: object
+      required:
+        - status_code
+        - message
+      title: HeadChurchResponse
+    HeadChurchUpdateIn:
+      properties:
+        Code:
+          type: string
+          maxLength: 4
+          title: Code
+          examples:
+            - TEST
+        Name:
+          type: string
+          maxLength: 255
+          title: Name
+          examples:
+            - Test Church
+        Alt_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Alt Name
+          examples:
+            - Test Church Alternate Name
+        Address:
+          type: string
+          maxLength: 255
+          title: Address
+          examples:
+            - This is the address of the Church
+        Founding_Date:
+          anyOf:
+            - type: string
+              format: date
+            - type: "null"
+          title: Founding Date
+          examples:
+            - 2000-12-31
+        About:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: About
+          examples:
+            - This is about the Church
+        Mission:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Mission
+          examples:
+            - This is the mission of the Church
+        Vision:
+          anyOf:
+            - type: string
+              maxLength: 1000
+            - type: "null"
+          title: Vision
+          examples:
+            - This is the vision of the Church
+        Motto:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Motto
+          examples:
+            - This is the motto of the Church
+        Contact_No:
+          type: string
+          maxLength: 25
+          minLength: 7
+          format: phone
+          title: Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No2:
+          anyOf:
+            - type: string
+              maxLength: 25
+              minLength: 7
+              format: phone
+            - type: "null"
+          title: Contact No2
+          examples:
+            - "+2348012345678"
+        Contact_Email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Contact Email
+          examples:
+            - john.doe@example.com
+        Contact_Email2:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Contact Email2
+          examples:
+            - john.doe2@example.com
+        Town_Code:
+          type: string
+          maxLength: 4
+          title: Town Code
+          examples:
+            - BEN
+        State_Code:
+          type: string
+          maxLength: 4
+          title: State Code
+          examples:
+            - EDO
+        Region_Code:
+          type: string
+          maxLength: 4
+          title: Region Code
+          examples:
+            - SOUT
+        Country_Code:
+          type: string
+          maxLength: 4
+          title: Country Code
+          examples:
+            - NIG
+      type: object
+      title: HeadChurchUpdateIn
+    Hierarchy:
+      properties:
+        Level_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Level Code
+        Level_No:
+          anyOf:
+            - type: integer
+            - type: "null"
+          title: Level No
+        Head_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Head Code
+        Church_Level:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Church Level
+        ChurchLevel_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Churchlevel Code
+        Is_Active:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Active
+          default: true
+        Created_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Created By
+        Created_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Created Date
+        Modified_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Modified By
+        Modified_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Modified Date
+      type: object
+      title: Hierarchy
+    HierarchyResponse:
+      properties:
+        status_code:
+          type: integer
+          title: Status Code
+        message:
+          type: string
+          title: Message
+        data:
+          anyOf:
+            - items:
+                $ref: "#/components/schemas/Hierarchy"
+              type: array
+            - $ref: "#/components/schemas/Hierarchy"
+            - type: "null"
+          title: Data
+      type: object
+      required:
+        - status_code
+        - message
+      title: HierarchyResponse
+    HierarchyUpdate:
+      properties:
+        Church_Level:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Church Level
+        ChurchLevel_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Churchlevel Code
+        Is_Active:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Active
+          default: true
+      type: object
+      title: HierarchyUpdate
+    Member:
+      properties:
+        Code:
+          type: string
+          title: Code
+        Clergy_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Clergy Code
+        First_Name:
+          type: string
+          maxLength: 255
+          title: First Name
+          examples:
+            - John
+        Middle_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Middle Name
+          examples:
+            - Janet
+        Last_Name:
+          type: string
+          maxLength: 255
+          title: Last Name
+          examples:
+            - Doe
+        Title:
+          anyOf:
+            - type: string
+              maxLength: 100
+            - type: "null"
+          title: Title
+          examples:
+            - Dr
+        Title2:
+          anyOf:
+            - type: string
+              maxLength: 100
+            - type: "null"
+          title: Title2
+          examples:
+            - Mrs
+        Family_Name:
+          type: string
+          maxLength: 255
+          title: Family Name
+          examples:
+            - Doe
+        Is_FamilyHead:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Familyhead
+          default: false
+        Home_Address:
+          type: string
+          maxLength: 500
+          title: Home Address
+          examples:
+            - This is the address of the Member
+        Date_of_Birth:
+          type: string
+          title: Date Of Birth
+          examples:
+            - 2000-12-31
+        Gender:
+          type: string
+          maxLength: 1
+          title: Gender
+          examples:
+            - Male
+        Marital_Status:
+          type: string
+          maxLength: 4
+          title: Marital Status
+          examples:
+            - Single
+        Employ_Status:
+          type: string
+          maxLength: 4
+          title: Employ Status
+          examples:
+            - EMPD
+        Occupation:
+          anyOf:
+            - type: string
+              maxLength: 100
+            - type: "null"
+          title: Occupation
+          examples:
+            - Doctor
+        Office_Address:
+          anyOf:
+            - type: string
+              maxLength: 500
+            - type: "null"
+          title: Office Address
+          examples:
+            - This is the address of the Office
+        State_of_Origin:
+          type: string
+          maxLength: 3
+          title: State Of Origin
+          examples:
+            - Lagos
+        Personal_Contact_No:
+          anyOf:
+            - type: string
+              maxLength: 25
+            - type: "null"
+          title: Personal Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No:
+          type: string
+          maxLength: 25
+          title: Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No2:
+          anyOf:
+            - type: string
+              maxLength: 25
+            - type: "null"
+          title: Contact No2
+          examples:
+            - "+2348012345678"
+        Personal_Email:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Personal Email
+          examples:
+            - john.doe@example.com
+        Contact_Email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Contact Email
+          examples:
+            - john.doe@example.com
+        Contact_Email2:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Contact Email2
+          examples:
+            - john.doe@example.com
+        Town_Code:
+          type: string
+          maxLength: 4
+          title: Town Code
+        State_Code:
+          type: string
+          maxLength: 4
+          title: State Code
+        Region_Code:
+          type: string
+          maxLength: 4
+          title: Region Code
+        Country_Code:
+          type: string
+          maxLength: 4
+          title: Country Code
+        Type:
+          type: string
+          maxLength: 3
+          title: Type
+          examples:
+            - MBR
+        Branch_Code:
+          type: string
+          title: Branch Code
+        Join_Date:
+          type: string
+          format: date-time
+          title: Join Date
+        Join_Reason:
+          type: string
+          title: Join Reason
+        Join_Note:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Join Note
+        Exit_Date:
+          type: string
+          format: date-time
+          title: Exit Date
+        Exit_Reason:
+          type: string
+          title: Exit Reason
+        Exit_Note:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Exit Note
+        Is_User:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is User
+          default: false
+        Is_Clergy:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Clergy
+          default: false
+        Is_Active:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Active
+          default: true
+        HeadChurch_Code:
+          type: string
+          maxLength: 4
+          title: Headchurch Code
+          examples:
+            - TEST
+        Created_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Created Date
+        Created_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Created By
+        Modified_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Modified Date
+        Modified_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Modified By
+      type: object
+      required:
+        - Code
+        - First_Name
+        - Last_Name
+        - Family_Name
+        - Home_Address
+        - Date_of_Birth
+        - Gender
+        - Marital_Status
+        - Employ_Status
+        - State_of_Origin
+        - Contact_No
+        - Contact_Email
+        - Town_Code
+        - State_Code
+        - Region_Code
+        - Country_Code
+        - Type
+        - Branch_Code
+        - Join_Date
+        - Join_Reason
+        - Exit_Date
+        - Exit_Reason
+        - HeadChurch_Code
+      title: Member
+    MemberBranchExit:
+      properties:
+        Branch_Code:
+          type: string
+          title: Branch Code
+        Exit_Date:
+          type: string
+          format: date-time
+          title: Exit Date
+        Exit_Reason:
+          type: string
+          title: Exit Reason
+        Exit_Note:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Exit Note
+        Member_Code:
+          type: string
+          title: Member Code
+      type: object
+      required:
+        - Branch_Code
+        - Exit_Date
+        - Exit_Reason
+        - Member_Code
+      title: MemberBranchExit
+    MemberBranchJoin:
+      properties:
+        Branch_Code:
+          type: string
+          title: Branch Code
+        Join_Date:
+          type: string
+          format: date-time
+          title: Join Date
+        Join_Reason:
+          type: string
+          title: Join Reason
+        Join_Note:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Join Note
+        Member_Code:
+          type: string
+          title: Member Code
+      type: object
+      required:
+        - Branch_Code
+        - Join_Date
+        - Join_Reason
+        - Member_Code
+      title: MemberBranchJoin
+    MemberBranchOut:
+      properties:
+        Member_Code:
+          type: string
+          title: Member Code
+        First_Name:
+          type: string
+          title: First Name
+        Middle_Name:
+          type: string
+          title: Middle Name
+        Last_Name:
+          type: string
+          title: Last Name
+        Branch_Code:
+          type: string
+          title: Branch Code
+        Church_Name:
+          type: string
+          title: Church Name
+        Join_Date:
+          type: string
+          format: date-time
+          title: Join Date
+        Join_Reason:
+          type: string
+          title: Join Reason
+        Join_Note:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Join Note
+        Exit_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Exit Date
+        Exit_Reason:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Exit Reason
+        Exit_Note:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Exit Note
+        HeadChurch_Code:
+          type: string
+          title: Headchurch Code
+        Is_Active:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Active
+          default: true
+        Created_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Created Date
+        Created_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Created By
+        Modified_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Modified Date
+        Modified_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Modified By
+      type: object
+      required:
+        - Member_Code
+        - First_Name
+        - Middle_Name
+        - Last_Name
+        - Branch_Code
+        - Church_Name
+        - Join_Date
+        - Join_Reason
+        - HeadChurch_Code
+      title: MemberBranchOut
+    MemberBranchResponse:
+      properties:
+        status_code:
+          type: integer
+          title: Status Code
+        message:
+          type: string
+          title: Message
+        data:
+          anyOf:
+            - items:
+                $ref: "#/components/schemas/MemberBranchOut"
+              type: array
+            - $ref: "#/components/schemas/MemberBranchOut"
+            - type: "null"
+          title: Data
+      type: object
+      required:
+        - status_code
+        - message
+      title: MemberBranchResponse
+    MemberBranchUpdate:
+      properties:
+        Member_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Member Code
+        Branch_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Branch Code
+        Join_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Join Date
+        Join_Reason:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Join Reason
+        Join_Note:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Join Note
+        Exit_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Exit Date
+        Exit_Reason:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Exit Reason
+        Exit_Note:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Exit Note
+        Is_Active:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Active
+          default: true
+      type: object
+      title: MemberBranchUpdate
+    MemberIn:
+      properties:
+        First_Name:
+          type: string
+          maxLength: 255
+          title: First Name
+          examples:
+            - John
+        Middle_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Middle Name
+          examples:
+            - Janet
+        Last_Name:
+          type: string
+          maxLength: 255
+          title: Last Name
+          examples:
+            - Doe
+        Title:
+          anyOf:
+            - type: string
+              maxLength: 100
+            - type: "null"
+          title: Title
+          examples:
+            - Dr
+        Title2:
+          anyOf:
+            - type: string
+              maxLength: 100
+            - type: "null"
+          title: Title2
+          examples:
+            - Mrs
+        Family_Name:
+          type: string
+          maxLength: 255
+          title: Family Name
+          examples:
+            - Doe
+        Is_FamilyHead:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Familyhead
+          default: false
+        Home_Address:
+          type: string
+          maxLength: 500
+          title: Home Address
+          examples:
+            - This is the address of the Member
+        Date_of_Birth:
+          type: string
+          title: Date Of Birth
+          examples:
+            - 2000-12-31
+        Gender:
+          type: string
+          maxLength: 1
+          title: Gender
+          examples:
+            - Male
+        Marital_Status:
+          type: string
+          maxLength: 4
+          title: Marital Status
+          examples:
+            - Single
+        Employ_Status:
+          type: string
+          maxLength: 4
+          title: Employ Status
+          examples:
+            - EMPD
+        Occupation:
+          anyOf:
+            - type: string
+              maxLength: 100
+            - type: "null"
+          title: Occupation
+          examples:
+            - Doctor
+        Office_Address:
+          anyOf:
+            - type: string
+              maxLength: 500
+            - type: "null"
+          title: Office Address
+          examples:
+            - This is the address of the Office
+        State_of_Origin:
+          type: string
+          maxLength: 3
+          title: State Of Origin
+          examples:
+            - Lagos
+        Personal_Contact_No:
+          anyOf:
+            - type: string
+              maxLength: 25
+            - type: "null"
+          title: Personal Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No:
+          type: string
+          maxLength: 25
+          title: Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No2:
+          anyOf:
+            - type: string
+              maxLength: 25
+            - type: "null"
+          title: Contact No2
+          examples:
+            - "+2348012345678"
+        Personal_Email:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Personal Email
+          examples:
+            - john.doe@example.com
+        Contact_Email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Contact Email
+          examples:
+            - john.doe@example.com
+        Contact_Email2:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Contact Email2
+          examples:
+            - john.doe@example.com
+        Town_Code:
+          type: string
+          maxLength: 4
+          title: Town Code
+        State_Code:
+          type: string
+          maxLength: 4
+          title: State Code
+        Region_Code:
+          type: string
+          maxLength: 4
+          title: Region Code
+        Country_Code:
+          type: string
+          maxLength: 4
+          title: Country Code
+        Type:
+          type: string
+          maxLength: 3
+          title: Type
+          examples:
+            - MBR
+        Branch_Code:
+          type: string
+          title: Branch Code
+        Join_Date:
+          type: string
+          format: date-time
+          title: Join Date
+        Join_Reason:
+          type: string
+          title: Join Reason
+        Join_Note:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Join Note
+      type: object
+      required:
+        - First_Name
+        - Last_Name
+        - Family_Name
+        - Home_Address
+        - Date_of_Birth
+        - Gender
+        - Marital_Status
+        - Employ_Status
+        - State_of_Origin
+        - Contact_No
+        - Contact_Email
+        - Town_Code
+        - State_Code
+        - Region_Code
+        - Country_Code
+        - Type
+        - Branch_Code
+        - Join_Date
+        - Join_Reason
+      title: MemberIn
+    MemberResponse:
+      properties:
+        status_code:
+          type: integer
+          title: Status Code
+        message:
+          type: string
+          title: Message
+        data:
+          anyOf:
+            - items:
+                $ref: "#/components/schemas/Member"
+              type: array
+            - $ref: "#/components/schemas/Member"
+            - type: "null"
+          title: Data
+      type: object
+      required:
+        - status_code
+        - message
+      title: MemberResponse
+    MemberUpdate:
+      properties:
+        First_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: First Name
+          examples:
+            - John
+        Middle_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Middle Name
+          examples:
+            - Janet
+        Last_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Last Name
+          examples:
+            - Doe
+        Title:
+          anyOf:
+            - type: string
+              maxLength: 100
+            - type: "null"
+          title: Title
+          examples:
+            - Dr
+        Title2:
+          anyOf:
+            - type: string
+              maxLength: 100
+            - type: "null"
+          title: Title2
+          examples:
+            - Mrs
+        Family_Name:
+          anyOf:
+            - type: string
+              maxLength: 255
+            - type: "null"
+          title: Family Name
+          examples:
+            - Doe
+        Is_FamilyHead:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Familyhead
+          default: false
+        Home_Address:
+          anyOf:
+            - type: string
+              maxLength: 500
+            - type: "null"
+          title: Home Address
+          examples:
+            - This is the address of the Member
+        Date_of_Birth:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Date Of Birth
+          examples:
+            - 2000-12-31
+        Gender:
+          anyOf:
+            - type: string
+              maxLength: 1
+            - type: "null"
+          title: Gender
+          examples:
+            - Male
+        Marital_Status:
+          anyOf:
+            - type: string
+              maxLength: 3
+            - type: "null"
+          title: Marital Status
+          examples:
+            - Single
+        Employ_Status:
+          anyOf:
+            - type: string
+              maxLength: 3
+            - type: "null"
+          title: Employ Status
+          examples:
+            - EMPD
+        Occupation:
+          anyOf:
+            - type: string
+              maxLength: 100
+            - type: "null"
+          title: Occupation
+          examples:
+            - Doctor
+        Office_Address:
+          anyOf:
+            - type: string
+              maxLength: 500
+            - type: "null"
+          title: Office Address
+          examples:
+            - This is the address of the Office
+        State_of_Origin:
+          anyOf:
+            - type: string
+              maxLength: 3
+            - type: "null"
+          title: State Of Origin
+          examples:
+            - Lagos
+        Personal_Contact_No:
+          anyOf:
+            - type: string
+              maxLength: 25
+            - type: "null"
+          title: Personal Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No:
+          anyOf:
+            - type: string
+              maxLength: 25
+            - type: "null"
+          title: Contact No
+          examples:
+            - "+2348012345678"
+        Contact_No2:
+          anyOf:
+            - type: string
+              maxLength: 25
+            - type: "null"
+          title: Contact No2
+          examples:
+            - "+2348012345678"
+        Personal_Email:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Personal Email
+          examples:
+            - john.doe@example.com
+        Contact_Email:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Contact Email
+          examples:
+            - john.doe@example.com
+        Contact_Email2:
+          anyOf:
+            - type: string
+              maxLength: 255
+              format: email
+            - type: "null"
+          title: Contact Email2
+          examples:
+            - john.doe@example.com
+        Is_User:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is User
+          default: false
+        Town_Code:
+          anyOf:
+            - type: string
+              maxLength: 4
+            - type: "null"
+          title: Town Code
+        State_Code:
+          anyOf:
+            - type: string
+              maxLength: 4
+            - type: "null"
+          title: State Code
+        Region_Code:
+          anyOf:
+            - type: string
+              maxLength: 4
+            - type: "null"
+          title: Region Code
+        Country_Code:
+          anyOf:
+            - type: string
+              maxLength: 4
+            - type: "null"
+          title: Country Code
+        Type:
+          anyOf:
+            - type: string
+              maxLength: 3
+            - type: "null"
+          title: Type
+          examples:
+            - MBR
+        Is_Clergy:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Clergy
+          default: false
+        HeadChurch_Code:
+          anyOf:
+            - type: string
+              maxLength: 4
+            - type: "null"
+          title: Headchurch Code
+          examples:
+            - TEST
+        Is_Active:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Active
+          default: true
+        Created_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Created Date
+        Created_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Created By
+        Modified_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Modified Date
+        Modified_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Modified By
+      type: object
+      title: MemberUpdate
+    TokenLevelResponse:
+      properties:
+        status_code:
+          type: integer
+          title: Status Code
+        message:
+          type: string
+          title: Message
+        access_token:
+          type: string
+          title: Access Token
+        token_type:
+          type: string
+          title: Token Type
+        user_access:
+          anyOf:
+            - items:
+                $ref: "#/components/schemas/UserLevel"
+              type: array
+            - $ref: "#/components/schemas/UserLevel"
+            - type: "null"
+          title: User Access
+      type: object
+      required:
+        - status_code
+        - message
+        - access_token
+        - token_type
+      title: TokenLevelResponse
+    TokenResponse:
+      properties:
+        status_code:
+          type: integer
+          title: Status Code
+        message:
+          type: string
+          title: Message
+        access_token:
+          type: string
+          title: Access Token
+        token_type:
+          type: string
+          title: Token Type
+        user:
+          anyOf:
+            - items:
+                $ref: "#/components/schemas/User"
+              type: array
+            - $ref: "#/components/schemas/User"
+            - type: "null"
+          title: User
+      type: object
+      required:
+        - status_code
+        - message
+        - access_token
+        - token_type
+      title: TokenResponse
+    User:
+      properties:
+        Usercode:
+          type: string
+          title: Usercode
+        Email:
+          anyOf:
+            - type: string
+              format: email
+            - type: "null"
+          title: Email
+        HeadChurch_Code:
+          type: string
+          title: Headchurch Code
+        Is_Active:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Active
+          default: false
+        Title:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Title
+        Titl2:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Titl2
+        First_Name:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: First Name
+        Last_Name:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Last Name
+      type: object
+      required:
+        - Usercode
+        - HeadChurch_Code
+      title: User
+    UserAccess:
+      properties:
+        Usercode:
+          type: string
+          title: Usercode
+        Email:
+          anyOf:
+            - type: string
+              format: email
+            - type: "null"
+          title: Email
+        Level_Code:
+          type: string
+          title: Level Code
+        Level_No:
+          type: integer
+          title: Level No
+        Role_Code:
+          type: string
+          title: Role Code
+        Church_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Church Code
+        ChurchLevel_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Churchlevel Code
+        Church_Level:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Church Level
+        HeadChurch_Code:
+          type: string
+          title: Headchurch Code
+        Module_Code:
+          type: string
+          title: Module Code
+        SubModule_Code:
+          type: string
+          title: Submodule Code
+        Access_Type:
+          type: string
+          title: Access Type
+        Title:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Title
+        Titl2:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Titl2
+        First_Name:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: First Name
+        Last_Name:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Last Name
+      type: object
+      required:
+        - Usercode
+        - Level_Code
+        - Level_No
+        - Role_Code
+        - HeadChurch_Code
+        - Module_Code
+        - SubModule_Code
+        - Access_Type
+      title: UserAccess
+    UserDetails:
+      properties:
+        First_Name:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: First Name
+        Last_Name:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Last Name
+        Title:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Title
+        Title2:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Title2
+        Usercode:
+          type: string
+          title: Usercode
+        Email:
+          anyOf:
+            - type: string
+              format: email
+            - type: "null"
+          title: Email
+        HeadChurch_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Headchurch Code
+        Is_Active:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Active
+          default: false
+        is_Verified:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          title: Is Verified
+          default: false
+        Created_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Created By
+        Created_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Created Date
+        Modified_By:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Modified By
+        Modified_Date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Modified Date
+      type: object
+      required:
+        - Usercode
+      title: UserDetails
+    UserLevel:
+      properties:
+        Usercode:
+          type: string
+          title: Usercode
+        Email:
+          anyOf:
+            - type: string
+              format: email
+            - type: "null"
+          title: Email
+        Level_Code:
+          type: string
+          title: Level Code
+        ChurchLevel_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Churchlevel Code
+        HeadChurch_Code:
+          type: string
+          title: Headchurch Code
+        Title:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Title
+        Titl2:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Titl2
+        First_Name:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: First Name
+        Last_Name:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Last Name
+      type: object
+      required:
+        - Usercode
+        - Level_Code
+        - HeadChurch_Code
+      title: UserLevel
+    UserLevels:
+      properties:
+        Level_Code:
+          type: string
+          title: Level Code
+        ChurchLevel_Code:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Churchlevel Code
+        Church_Level:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Church Level
+      type: object
+      required:
+        - Level_Code
+      title: UserLevels
+    UserResponse:
+      properties:
+        status_code:
+          type: integer
+          title: Status Code
+        message:
+          type: string
+          title: Message
+        data:
+          anyOf:
+            - items:
+                $ref: "#/components/schemas/UserDetails"
+              type: array
+            - $ref: "#/components/schemas/UserDetails"
+            - type: "null"
+          title: Data
+      type: object
+      required:
+        - status_code
+        - message
+      title: UserResponse
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+        - loc
+        - msg
+        - type
+      title: ValidationError
+  securitySchemes:
+    OAuth2PasswordBearer:
+      type: oauth2
+      flows:
+        password:
+          scopes: {}
+          tokenUrl: auth/login
+tags:
+  - name: Authentication Operations
+    description: Operations on User Authentications
+  - name: Hierarchy Sub-Module Operations
+    description: Operations on the Church Sub-Module Hirarchy
+  - name: Head Church Sub-Module Operations - Super Admin only
+    description: Operations on the Head Church Sub-Module by Super Admin
+  - name: Head Church Sub-Module Operations
+    description: Operations on the Head Church
+  - name: Churches Sub-Module Operations - Admin only
+    description: Operations on the Churches Sub-Module by Admin
+  - name: Churches Sub-Module Operations
+    description: Operations on the Churches Sub-Module
+  - name: Church Leads Sub-Module Operations - Admin only
+    description: Operations on the Church Leads Sub-Module by Admin
+  - name: Church Leads Sub-Module Operations
+    description: Operations on the Church Leads Sub-Module
+  - name: Groups Sub-Module Operations - Admin only
+    description: Operations on the Groups Sub-Module by Admin
+  - name: Groups Sub-Module Operations
+    description: Operations on the Groups Sub-Module
+  - name: Sub Groups Sub-Module Operations - Admin only
+    description: Operations on the Sub Groups by Admin
+  - name: Sub Groups Sub-Module Operations
+    description: Operations on the Sub Groups Sub-Module
+  - name: Members Sub-Module Operations - Admin only
+    description: Operations on the Sub Groups by Admin
+  - name: Members Sub-Module Operations
+    description: Operations on the Sub Groups Sub-Module
+  - name: Member Church Sub-Module Operations - Admin only
+    description: Operations on the Member's Church by Admin
+  - name: Member Church Sub-Module Operations
+    description: Operations on the Member's Church Sub-Module

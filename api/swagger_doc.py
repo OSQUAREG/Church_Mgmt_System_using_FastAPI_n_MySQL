@@ -1,7 +1,12 @@
+from sys import prefix
+from .common.config import settings
+
+dev_prefix = settings.dev_prefix
+
 checkbox = """<input type="checkbox" checked>"""
 uncheckbox = """<input type="checkbox" unchecked disabled>"""
 description = f"""
-The Church Management System (ChMS) is an application that helps the Church manage her members, groups, events, assets, mass communication and finances (tithes, offerings, donations, seeds etc).
+The ChurchMan App is a Church Management Solution (ChMS) that helps Churches manage her members, groups, events, assets, communications and finances (tithes, offerings, donations, seeds etc).
 
 # Modules
 
@@ -102,96 +107,122 @@ This manages all communication channels and messages.
 <br>
 """
 
-swagger_params = dict(
-    title="ChurchMan - Church Management System",
-    description=description,
-    version="0.0.1",
-    contact={
-        "name": "Gregory Ogbemudia",
-        "email": "gregory.ogbemduia@gmail.com",
+openapi_tags = [
+    # Authentication Module
+    {
+        "name": "Authentication Operations",
+        "description": "Operations on User Authentications",
     },
-    license_info={
-        "name": "MIT License",
-        "identifier": "MIT",
+    # CHURCH ADMINSTRATION MODULE
+    # Hierarchy Module Sub Module
+    {
+        "name": "Hierarchy Sub-Module Operations",
+        "description": "Operations on the Church Sub-Module Hirarchy",
     },
-    openapi_url="/api/v1/openapi.json",
-    docs_url="/api/v1/docs",
-    openapi_tags=[
-        # Authentication Module
-        {
-            "name": "Authentication Operations",
-            "description": "Operations on User Authentications",
+    # Head Church Sub Module
+    {
+        "name": "Head Church Sub-Module Operations - Super Admin only",
+        "description": "Operations on the Head Church Sub-Module by Super Admin",
+    },
+    {
+        "name": "Head Church Sub-Module Operations",
+        "description": "Operations on the Head Church",
+    },
+    # Churches Sub Module
+    {
+        "name": "Churches Sub-Module Operations - Admin only",
+        "description": "Operations on the Churches Sub-Module by Admin",
+    },
+    {
+        "name": "Churches Sub-Module Operations",
+        "description": "Operations on the Churches Sub-Module",
+    },
+    # Church Leads Sub Module
+    {
+        "name": "Church Leads Sub-Module Operations - Admin only",
+        "description": "Operations on the Church Leads Sub-Module by Admin",
+    },
+    {
+        "name": "Church Leads Sub-Module Operations",
+        "description": "Operations on the Church Leads Sub-Module",
+    },
+    # Group Sub Module
+    {
+        "name": "Groups Sub-Module Operations - Admin only",
+        "description": "Operations on the Groups Sub-Module by Admin",
+    },
+    {
+        "name": "Groups Sub-Module Operations",
+        "description": "Operations on the Groups Sub-Module",
+    },
+    # Sub Group Sub Module
+    {
+        "name": "Sub Groups Sub-Module Operations - Admin only",
+        "description": "Operations on the Sub Groups by Admin",
+    },
+    {
+        "name": "Sub Groups Sub-Module Operations",
+        "description": "Operations on the Sub Groups Sub-Module",
+    },
+    ## MEMBERSHIP MANAGEMENT MODULE
+    # Members Sub Module
+    {
+        "name": "Members Sub-Module Operations - Admin only",
+        "description": "Operations on the Sub Groups by Admin",
+    },
+    {
+        "name": "Members Sub-Module Operations",
+        "description": "Operations on the Sub Groups Sub-Module",
+    },
+    # Member Church Sub Module
+    {
+        "name": "Member Church Sub-Module Operations - Admin only",
+        "description": "Operations on the Member's Church by Admin",
+    },
+    {
+        "name": "Member Church Sub-Module Operations",
+        "description": "Operations on the Member's Church Sub-Module",
+    },
+]
+
+
+def get_swagger_params(prefix):
+    swagger_params = dict(
+        title="ChurchMan App",
+        summary="An all-in-one Church Management Solution.",
+        description=description,
+        version="0.0.1",
+        contact={
+            "name": "Gregory Ogbemudia",
+            "url": "https://github.com/OSQUAREG",
+            "email": "gregory.ogbemduia@gmail.com",
         },
-        # CHURCH ADMINSTRATION MODULE
-        # Hierarchy Module Sub Module
-        {
-            "name": "Hierarchy Sub-Module Operations",
-            "description": "Operations on the Church Sub-Module Hirarchy",
+        license_info={
+            "name": "MIT License",
+            "url": "https://spdx.org/licenses/MIT.html",
+            "identifier": "MIT",
         },
-        # Head Church Sub Module
-        {
-            "name": "Head Church Sub-Module Operations - Super Admin only",
-            "description": "Operations on the Head Church Sub-Module by Super Admin",
-        },
-        {
-            "name": "Head Church Sub-Module Operations",
-            "description": "Operations on the Head Church",
-        },
-        # Churches Sub Module
-        {
-            "name": "Churches Sub-Module Operations - Admin only",
-            "description": "Operations on the Churches Sub-Module by Admin",
-        },
-        {
-            "name": "Churches Sub-Module Operations",
-            "description": "Operations on the Churches Sub-Module",
-        },
-        # Church Leads Sub Module
-        {
-            "name": "Church Leads Sub-Module Operations - Admin only",
-            "description": "Operations on the Church Leads Sub-Module by Admin",
-        },
-        {
-            "name": "Church Leads Sub-Module Operations",
-            "description": "Operations on the Church Leads Sub-Module",
-        },
-        # Group Sub Module
-        {
-            "name": "Groups Sub-Module Operations - Admin only",
-            "description": "Operations on the Groups Sub-Module by Admin",
-        },
-        {
-            "name": "Groups Sub-Module Operations",
-            "description": "Operations on the Groups Sub-Module",
-        },
-        # Sub Group Sub Module
-        {
-            "name": "Sub Groups Sub-Module Operations - Admin only",
-            "description": "Operations on the Sub Groups by Admin",
-        },
-        {
-            "name": "Sub Groups Sub-Module Operations",
-            "description": "Operations on the Sub Groups Sub-Module",
-        },
-        ## MEMBERSHIP MANAGEMENT MODULE
-        # Members Sub Module
-        {
-            "name": "Members Sub-Module Operations - Admin only",
-            "description": "Operations on the Sub Groups by Admin",
-        },
-        {
-            "name": "Members Sub-Module Operations",
-            "description": "Operations on the Sub Groups Sub-Module",
-        },
-        # Member Church Sub Module
-        {
-            "name": "Member Church Sub-Module Operations - Admin only",
-            "description": "Operations on the Member's Church by Admin",
-        },
-        {
-            "name": "Member Church Sub-Module Operations",
-            "description": "Operations on the Member's Church Sub-Module",
-        },
-    ],
-    persistAuthorization=True,
-)
+        servers=[
+            {
+                "url": "https://development.churchman.com/v1",
+                "description": "Development server",
+            },
+            {
+                "url": "https://test.churchman.com/v1",
+                "description": "Test server",
+            },
+            {
+                "url": "https://staging.churchman.com/v1",
+                "description": "Staging server",
+            },
+            {
+                "url": "https://api.churchman.com/v1",
+                "description": "Production server",
+            },
+        ],
+        openapi_url=f"{prefix}/openapi.json",
+        docs_url=f"{prefix}/docs",
+        openapi_tags=openapi_tags,
+        persistAuthorization=True,
+    )
+    return swagger_params

@@ -1,6 +1,7 @@
 from typing import Annotated
 from secrets import token_hex
 
+from ...authentication.services.auth import AuthService
 from fastapi import Depends  # type: ignore
 from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
@@ -29,8 +30,8 @@ class UserServices:
         self.current_user_access = current_user_access
         self.member_services = member_services
 
-    async def promote_member_to_user(self, member_code: str):
-        """Promote Member To User: accessible to only church admins of same/higher level/church."""
+    async def create_user_from_member(self, member_code: str):
+        """Create User From Member: accessible to only church admins of same/higher level/church."""
         try:
             # fetch user member data
             user = await self.member_services.get_member_by_code(member_code)
@@ -38,6 +39,7 @@ class UserServices:
                 user.Church_Code, self.current_user.HeadChurch_Code, self.db
             )
             new_password = token_hex(10)
+            # password_hash = AuthService().get_password_hash(new_password)
             # set user access
             set_user_access(
                 self.current_user_access,
@@ -80,7 +82,7 @@ class UserServices:
                 dict(
                     Usercode=user.Code,
                     Email=user.Personal_Email,
-                    Password=new_password,
+                    Password=AuthService().get_password_hash(new_password),
                     HeadChurch_Code=user.HeadChurch_Code,
                 ),
             )

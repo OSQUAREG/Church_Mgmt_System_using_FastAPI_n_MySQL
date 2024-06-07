@@ -60,22 +60,26 @@ member_church_adm_router = APIRouter(
 
 # Create New Member
 @members_adm_router.post(
-    "/{branch_code}/create",
+    "/create",
     status_code=status.HTTP_201_CREATED,
     name="Create New Member",
     response_model=MemberResponse,
 )
 async def create_new_member(
     member: MemberIn,
-    branch_code: Annotated[str, Path(..., description="code of the church branch")],
     member_services: Annotated[MemberServices, Depends(get_member_services)],
 ):
-    new_member = await member_services.create_new_member(member, branch_code)
+    new_member = await member_services.create_new_member(member)
     # set response body
     response = dict(
         data=new_member,
         status_code=status.HTTP_201_CREATED,
-        message=f"Successfully created new Member: '{new_member.First_Name}', with code: '{new_member.Member_Code}'",
+        message=(
+            f"Successfully created new member: '{new_member.Title} {new_member.Title2} {new_member.First_Name} {new_member.Last_Name} ({new_member.Code})"
+            + f" / ({new_member.Clergy_Code})'"
+            if new_member.Clergy_Code
+            else "'"
+        ),
     )
     return response
 

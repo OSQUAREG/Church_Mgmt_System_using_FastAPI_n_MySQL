@@ -9,6 +9,12 @@ class Settings(BaseSettings):
     user: str
     database: str
 
+    # Swagger/Server settings
+    dev_prefix: str
+    test_prefix: str
+    stg_prefix: str
+    prod_prefix: str
+
     # JWT settings
     jwt_secret_key: str
     algorithm: str

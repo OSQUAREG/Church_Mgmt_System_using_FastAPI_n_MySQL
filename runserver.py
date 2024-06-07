@@ -1,4 +1,4 @@
-import uvicorn
+import uvicorn  # type: ignore
 
 if __name__ == "__main__":
     uvicorn.run(

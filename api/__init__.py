@@ -1,11 +1,7 @@
-from fastapi import FastAPI, Request  # , HTTPException, status, Depends  # type: ignore
+from fastapi import FastAPI  # , Request, HTTPException, status, Depends  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
-
-# from fastapi.responses import HTMLResponse  # type: ignore
 from fastapi.staticfiles import StaticFiles  # type: ignore
 from fastapi.templating import Jinja2Templates  # type: ignore
-
-# from sqlalchemy.orm import Session  # type: ignore
 
 from .authentication.routes import auth_router
 from .hierarchy_mgmt.routes import (
@@ -23,11 +19,14 @@ from .membership_mgmt.routes import (
     member_church_router,
     member_church_adm_router,
 )
+from .user_mgmt.routes import user_route
 from .common.config import settings
-from .swagger_doc import swagger_params
+from .swagger_doc import get_swagger_params
+from .common.database import create_audit_log_triggers, get_db
 
 # from save_openapi_json import save_openapi_spec
-from .common.database import create_audit_log_triggers, get_db
+# from fastapi.responses import HTMLResponse  # type: ignore
+# from sqlalchemy.orm import Session  # type: ignore
 
 
 # Define CORS policy
@@ -37,12 +36,13 @@ origins = [
     "http://localhost:3000",
 ]
 
-prefix = "/api/v1"
 
-
-def create_app():
-    # Create Database Triggers for Audit Logs
+def create_app(prefix=settings.dev_prefix):
+    # Create DB Audit Logs Triggers
     # create_audit_log_triggers()
+
+    # Get Swagger Params
+    swagger_params = get_swagger_params(prefix)
 
     # Init app
     app = FastAPI(**swagger_params)
@@ -69,6 +69,7 @@ def create_app():
     app.include_router(members_adm_router, prefix=prefix)
     app.include_router(member_church_router, prefix=prefix)
     app.include_router(member_church_adm_router, prefix=prefix)
+    app.include_router(user_route, prefix=prefix)
 
     # Templates
     import os

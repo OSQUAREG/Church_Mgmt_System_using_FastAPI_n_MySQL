@@ -266,7 +266,7 @@ class ChurchServices:
             if church is None:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"church with code: '{id_code.upper()}' not found in Head Church: {self.current_user.HeadChurch_Code}",
+                    detail=f"Church with code: '{id_code.upper()}' not found in Head Church: {self.current_user.HeadChurch_Code}",
                 )
             return church
         except Exception as err:
@@ -460,6 +460,26 @@ class ChurchServices:
                     Status_Date=datetime.now(),
                     Modified_By=self.current_user.Usercode,
                     Code=code,
+                ),
+            )
+            self.db.commit()
+            # deactivate all active church lead mapping
+            self.db.execute(
+                text(
+                    """
+                    UPDATE tblChurchLeads 
+                    SET End_Date = :End_Date, Is_Active = :Is_Active, Modified_By = :Modified_By, Status = :Status, Status_By = :Status_By, Status_Date = :Status_Date 
+                    WHERE Church_Code = :Church_Code AND End_Date IS NULL;
+                    """
+                ),
+                dict(
+                    End_Date=datetime.now(),
+                    Is_Active=0,
+                    Status="INA",
+                    Status_By=self.current_user.Usercode,
+                    Status_Date=datetime.now(),
+                    Modified_By=self.current_user.Usercode,
+                    Church_Code=code.upper(),
                 ),
             )
             self.db.commit()

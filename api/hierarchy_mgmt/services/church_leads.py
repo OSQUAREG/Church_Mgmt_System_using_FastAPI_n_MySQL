@@ -72,7 +72,7 @@ class ChurchLeadsServices:
         self.church_services = church_services
 
     async def get_church_leads_by_church_code(
-        self, church_code: str, is_active: Optional[bool] = None
+        self, church_code: str, status_code: Optional[str] = None
     ):
         try:
             # fetch church data
@@ -81,7 +81,7 @@ class ChurchLeadsServices:
             if not church.Is_Active and church.Status != "APR":
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Church: {church.Name} is not active/approved.",
+                    detail=f"Church: '{church.Name} ({church.Code})' is not active or approved.",
                 )
             set_user_access(
                 self.current_user_access,
@@ -93,9 +93,11 @@ class ChurchLeadsServices:
                 self.db.execute(
                     text(
                         """
-                    SELECT Church_Code, Level_Code, LeadChurch_Code, LeadChurch_Level, Is_Active, Start_Date, End_Date, HeadChurch_Code, Created_Date, Created_By, Modified_Date, Modified_By, `Status`, Status_By, Status_Date
-                    FROM tblChurchLeads 
-                    WHERE Church_Code = :Church_Code AND HeadChurch_Code = :HeadChurch_Code
+                    SELECT CL.*, C.Name AS Church_Name, L.Name AS LeadChurch_Name
+                    FROM tblChurchLeads CL
+                    LEFT JOIN tblChurches C ON C.Code = CL.Church_Code
+                    LEFT JOIN tblChurches L ON L.Code = CL.LeadChurch_Code
+                    WHERE Church_Code = :Church_Code AND CL.HeadChurch_Code = :HeadChurch_Code
                     ORDER BY Start_Date DESC;
                     """
                     ),
@@ -104,21 +106,23 @@ class ChurchLeadsServices:
                         HeadChurch_Code=self.current_user.HeadChurch_Code,
                     ),
                 ).all()
-                if is_active is None
+                if status_code is None
                 else self.db.execute(
                     text(
                         """
-                    SELECT Church_Code, Level_Code, LeadChurch_Code, LeadChurch_Level, Is_Active, Start_Date, End_Date, HeadChurch_Code, Created_Date, Created_By, Modified_Date, Modified_By, `Status`, Status_By, Status_Date
-                    FROM tblChurchLeads 
-                    WHERE Church_Code = :Church_Code AND HeadChurch_Code = :HeadChurch_Code 
-                        AND A.Is_Active = :Is_Active
+                    SELECT CL.*, C.Name AS Church_Name, L.Name AS LeadChurch_Name
+                    FROM tblChurchLeads CL
+                    LEFT JOIN tblChurches C ON C.Code = CL.Church_Code
+                    LEFT JOIN tblChurches L ON L.Code = CL.LeadChurch_Code
+                    WHERE Church_Code = :Church_Code AND CL.HeadChurch_Code = :HeadChurch_Code 
+                        AND CL.Status = :Status 
                     ORDER BY Start_Date DESC;
                     """
                     ),
                     dict(
                         Church_Code=church_code,
                         HeadChurch_Code=self.current_user.HeadChurch_Code,
-                        Is_Active=is_active,
+                        Status=status_code,
                     ),
                 ).all()
             )
@@ -126,211 +130,57 @@ class ChurchLeadsServices:
         except Exception as err:
             raise err
 
-    async def unmap_church_leads_by_church_code(self, church_code: str):
+    async def get_current_church_lead_by_code(self, church_code: str):
+        """Get Church Lead by Code (by Both Church and Lead Church Code)"""
         try:
-            # fetch church data
+            # fetch and check church and lead church data
             church = await self.church_services.get_church_by_id_code(church_code)
+            # lead_church = await self.church_services.get_church_by_id_code(lead_code)
             # check if church is active/approved
             if not church.Is_Active and church.Status != "APR":
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Church: {church.Name} is not active/approved.",
+                    detail=f"Church: '{church.Name} ({church.Code})' is not active or approved.",
                 )
-            # get church level no
-            level = get_level(
-                church.Level_Code, self.current_user.HeadChurch_Code, self.db
-            )
-            # set user access
             set_user_access(
                 self.current_user_access,
                 headchurch_code=self.current_user.HeadChurch_Code,
-                role_code=["ADM", "SAD"],
-                # level_code=["CHU"],
-                level_no=level.Level_No - 1,
                 module_code=["ALLM", "HRCH"],
-                # submodule_code=["HEAD", "CL1"],
-                access_type=["ED", "VW"],
+                access_type=["VW"],
             )
-            # ummap church from any active church lead
-            self.db.execute(
+            church_lead = self.db.execute(
                 text(
                     """
-                    UPDATE tblChurchLeads 
-                    SET End_Date = :End_Date, Is_Active = :Is_Active, Modified_By = :Modified_By, Status = :Status, Status_By = :Status_By, Status_Date = :Status_Date 
-                    WHERE Church_Code = :Church_Code AND End_Date IS NULL;
+                    SELECT CL.*, C.Name AS Church_Name, L.Name AS LeadChurch_Name
+                    FROM tblChurchLeads CL
+                    LEFT JOIN tblChurches C ON C.Code = CL.Church_Code
+                    LEFT JOIN tblChurches L ON L.Code = CL.LeadChurch_Code
+                    WHERE CL.HeadChurch_Code = :HeadChurch_Code AND CL.Status = :Status
+                        AND Church_Code = :Church_Code
+                    ORDER BY Start_Date DESC;
                     """
                 ),
                 dict(
-                    End_Date=datetime.now(),
-                    Is_Active=0,
-                    Modified_By=self.current_user.Usercode,
-                    Status="INA",
-                    Status_By=self.current_user.Usercode,
-                    Status_Date=datetime.now(),
-                    Church_Code=church_code,
-                ),
-            )
-            self.db.commit()
-            return await self.get_church_leads_by_church_code(church_code)
-        except Exception as err:
-            self.db.rollback()
-            raise err
-
-    async def map_church_lead_by_code(self, church_code: str, lead_code: str):
-        try:
-            # fetch church data
-            church = await self.church_services.get_church_by_id_code(church_code)
-            # fetch lead church data
-            lead_church = await self.church_services.get_church_by_id_code(lead_code)
-            # fetch church leads
-            church_leads = await self.get_church_leads_by_church_code(church_code)
-            # check if church is active/approved
-            if not church.Is_Active and church.Status != "APR":
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Church: '{church.Name}' is not active/approved.",
-                )
-            # check if lead church is active/approved
-            if not lead_church.Is_Active and lead_church.Status != "APR":
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Selected Lead Church: '{lead_church.Name}' is not active/approved.",
-                )
-            # check if church is already mapped to lead church
-            for church_lead in church_leads:
-                if (
-                    church_lead.LeadChurch_Code == lead_church.Code
-                    and church_lead.Is_Active
-                    and church_lead.Status == "APR"
-                ):
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Church: '{church.Name}' is currently mapped to selected Lead Church: '{lead_church.Name}'.",
-                    )
-            # get church level no
-            level = get_level(
-                church.Level_Code, self.current_user.HeadChurch_Code, self.db
-            )
-            # set user access
-            set_user_access(
-                self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
-                role_code=["ADM", "SAD"],
-                # level_code=["CHU"],
-                level_no=level.Level_No - 1,
-                module_code=["ALLM", "HRCH"],
-                # submodule_code=["HEAD", "CL1"],
-                access_type=["ED"],
-            )
-            # unmap any current church leads
-            await self.unmap_church_leads_by_church_code(
-                church_code,
-            )
-            # assign church leads
-            self.db.execute(
-                text(
-                    """
-                    INSERT INTO tblChurchLeads
-                        (Church_Code, Level_Code, LeadChurch_Code, LeadChurch_Level, Start_Date, HeadChurch_Code, Created_By)
-                    VALUES 
-                        (:Church_Code, :Level_Code, :LeadChurch_Code, :LeadChurch_Level, :Start_Date, :HeadChurch_Code, :Created_By);
-                    """
-                ),
-                dict(
-                    Church_Code=church.Code,
-                    Level_Code=church.Level_Code,
-                    LeadChurch_Code=lead_church.Code,
-                    LeadChurch_Level=lead_church.Level_Code,
-                    Start_Date=datetime.now(),
                     HeadChurch_Code=self.current_user.HeadChurch_Code,
-                    Created_By=self.current_user.Usercode,
-                ),
-            )
-            self.db.commit()
-            new_church_lead = self.db.execute(
-                text("SELECT * FROM tblChurchLeads WHERE Id = LAST_INSERT_ID();")
-            ).first()
-            return new_church_lead
-        except Exception as err:
-            self.db.rollback()
-            raise err
-
-    async def approve_church_lead_by_code(self, church_code: str, lead_code: str):
-        try:
-            # fetch church data
-            church = await self.church_services.get_church_by_id_code(church_code)
-            # fetch lead church data
-            lead_church = await self.church_services.get_church_by_id_code(lead_code)
-            # fetch church leads
-            church_leads = await self.get_church_leads_by_church_code(church_code)
-            # check if church lead is active or already approved
-            for church_lead in church_leads:
-                if (
-                    church_lead.LeadChurch_Code == lead_church.Code
-                    and church_lead.Is_Active
-                    and church_lead.Status == "APR"
-                ):
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Church Lead mapping is already approved.",
-                    )
-                elif (
-                    church_lead.LeadChurch_Code == lead_church.Code
-                    and church_lead.Is_Active
-                    and church_lead.Status != "APR"
-                ):
-                    break
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Church Lead mapping is not active.",
-                )
-            # get church level no
-            level = get_level(
-                church.Level_Code, self.current_user.HeadChurch_Code, self.db
-            )
-            # set user access
-            set_user_access(
-                self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
-                role_code=["ADM", "SAD"],
-                # level_code=["CHU"],
-                level_no=level.Level_No - 1,
-                module_code=["ALLM", "HRCH"],
-                # submodule_code=["HEAD", "CL1"],
-                access_type=["ED"],
-            )
-            # approve church leads
-            self.db.execute(
-                text(
-                    """
-                    UPDATE tblChurchLeads
-                    SET Status = :Status, Status_Date = :Status_Date, Status_By = :Status_By, Modified_By = :Modified_By
-                    WHERE Church_Code = :Church_Code 
-                    AND LeadChurch_Code = :LeadChurch_Code
-                    AND HeadChurch_Code = :HeadChurch_Code
-                    AND Is_Active = :Is_Active;
-                    """
-                ),
-                dict(
                     Status="APR",
-                    Status_Date=datetime.now(),
-                    Status_By=self.current_user.Usercode,
-                    Modified_By=self.current_user.Usercode,
                     Church_Code=church.Code,
-                    LeadChurch_Code=lead_church.Code,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
-                    Is_Active=1,
+                    # LeadChurch_Code=lead_church.Code,
                 ),
-            )
-            self.db.commit()
-            return await self.get_church_leads_by_church_code(church.Code)
+            ).first()
+            if not church_lead:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Church: '{church.Name} ({church.Code})' does not have a current Lead Church.",
+                )
+            return church_lead
         except Exception as err:
-            self.db.rollback()
             raise err
 
     async def get_all_churches_by_lead_code(
-        self, lead_code: str, is_active: Optional[bool] = None
+        self,
+        lead_code: str,
+        status_code: Optional[str] = None,
+        level_code: Optional[str] = None,
     ):
         try:
             set_user_access(
@@ -341,13 +191,14 @@ class ChurchLeadsServices:
             )
             lead_church = await self.church_services.get_church_by_id_code(lead_code)
             churches = (
+                # fetch all with no status and level filter
                 self.db.execute(
                     text(
                         """
                         SELECT LeadChurch_Code, B.* FROM tblChurchLeads A
                         LEFT JOIN tblChurches B ON B.Code = A.Church_Code
                         WHERE LeadChurch_Code = :LeadChurch_Code
-                            AND HeadChurch_Code = :HeadChurch_Code;
+                            AND A.HeadChurch_Code = :HeadChurch_Code;
                         """
                     ),
                     dict(
@@ -355,22 +206,44 @@ class ChurchLeadsServices:
                         HeadChurch_Code=self.current_user.HeadChurch_Code,
                     ),
                 ).all()
-                if is_active is None
-                else self.db.execute(
-                    text(
-                        """
+                if status_code is None and level_code is None
+                else (
+                    # fetch all with status filter
+                    self.db.execute(
+                        text(
+                            """
                         SELECT LeadChurch_Code, B.* FROM tblChurchLeads A
                         LEFT JOIN tblChurches B ON B.Code = A.Church_Code
                         WHERE LeadChurch_Code = :LeadChurch_Code
-                            AND HeadChurch_Code = :HeadChurch_Code AND Is_Active = :Is_Active;
+                            AND A.HeadChurch_Code = :HeadChurch_Code 
+                            AND B.Status = :Status;
                         """
-                    ),
-                    dict(
-                        LeadChurch_Code=lead_church.Code,
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
-                        Is_Active=is_active,
-                    ),
-                ).all()
+                        ),
+                        dict(
+                            LeadChurch_Code=lead_church.Code,
+                            HeadChurch_Code=self.current_user.HeadChurch_Code,
+                            Status=status_code,
+                        ),
+                    ).all()
+                    if level_code is None
+                    # fetch all with church level filter
+                    else self.db.execute(
+                        text(
+                            """
+                        SELECT LeadChurch_Code, B.* FROM tblChurchLeads A
+                        LEFT JOIN tblChurches B ON B.Code = A.Church_Code
+                        WHERE LeadChurch_Code = :LeadChurch_Code
+                            AND A.HeadChurch_Code = :HeadChurch_Code 
+                            AND B.Level_Code = :Level_Code;
+                        """
+                        ),
+                        dict(
+                            LeadChurch_Code=lead_church.Code,
+                            HeadChurch_Code=self.current_user.HeadChurch_Code,
+                            Level_Code=level_code,
+                        ),
+                    ).all()
+                )
             )
             return churches
         except Exception as err:
@@ -437,6 +310,216 @@ class ChurchLeadsServices:
                 ).all()
             )
             return branches
+        except Exception as err:
+            self.db.rollback()
+            raise err
+
+    async def unmap_church_leads_by_church_code(self, church_code: str):
+        try:
+            # fetch church data
+            church = await self.church_services.get_church_by_id_code(church_code)
+            # check if church is active/approved
+            if not church.Is_Active and church.Status != "APR":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Church: '{church.Name} ({church.Code})' is not active or approved.",
+                )
+            # get church level no
+            level = get_level(
+                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+            )
+            # set user access
+            set_user_access(
+                self.current_user_access,
+                headchurch_code=self.current_user.HeadChurch_Code,
+                role_code=["ADM", "SAD"],
+                # level_code=["CHU"],
+                level_no=level.Level_No - 1,
+                module_code=["ALLM", "HRCH"],
+                # submodule_code=["HEAD", "CL1"],
+                access_type=["ED", "VW"],
+            )
+            # ummap church from any active church lead
+            self.db.execute(
+                text(
+                    """
+                    UPDATE tblChurchLeads 
+                    SET End_Date = :End_Date, Is_Active = :Is_Active, Modified_By = :Modified_By, Status = :Status, Status_By = :Status_By, Status_Date = :Status_Date 
+                    WHERE Church_Code = :Church_Code AND End_Date IS NULL;
+                    """
+                ),
+                dict(
+                    End_Date=datetime.now(),
+                    Is_Active=0,
+                    Modified_By=self.current_user.Usercode,
+                    Status="INA",
+                    Status_By=self.current_user.Usercode,
+                    Status_Date=datetime.now(),
+                    Church_Code=church_code,
+                ),
+            )
+            self.db.commit()
+            return await self.get_church_leads_by_church_code(church_code)
+        except Exception as err:
+            self.db.rollback()
+            raise err
+
+    async def map_church_lead_by_code(self, church_code: str, lead_code: str):
+        try:
+            # fetch church data
+            church = await self.church_services.get_church_by_id_code(church_code)
+            # fetch lead church data
+            lead_church = await self.church_services.get_church_by_id_code(lead_code)
+            # fetch church leads
+            church_leads = await self.get_church_leads_by_church_code(church_code)
+            print(church.Code)
+            # check if church is active/approved
+            if not church.Is_Active and church.Status != "APR":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Church: '{church.Name} ({church.Code})' is not active and approved.",
+                )
+            # check if lead church is active/approved
+            if not lead_church.Is_Active and lead_church.Status != "APR":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Selected Lead Church: '{lead_church.Name} ({lead_church.Code})' is not active and approved.",
+                )
+            # check if church is already mapped to lead church
+            for church_lead in church_leads:
+                if church_lead.LeadChurch_Code == lead_church.Code and (
+                    church_lead.Is_Active or church_lead.Status == "APR"
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Church: '{church.Name} ({church.Code})' is currently mapped to Lead Church: '{lead_church.Name} ({lead_church.Code})'.",
+                    )
+            # get church level no
+            level = get_level(
+                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+            )
+            # set user access
+            set_user_access(
+                self.current_user_access,
+                headchurch_code=self.current_user.HeadChurch_Code,
+                role_code=["ADM", "SAD"],
+                # level_code=["CHU"],
+                level_no=level.Level_No - 1,
+                module_code=["ALLM", "HRCH"],
+                # submodule_code=["HEAD", "CL1"],
+                access_type=["ED"],
+            )
+            # unmap any current church leads
+            await self.unmap_church_leads_by_church_code(
+                church_code,
+            )
+            # assign church leads
+            self.db.execute(
+                text(
+                    """
+                    INSERT INTO tblChurchLeads
+                        (Church_Code, Level_Code, LeadChurch_Code, LeadChurch_Level, Start_Date, HeadChurch_Code, Created_By)
+                    VALUES 
+                        (:Church_Code, :Level_Code, :LeadChurch_Code, :LeadChurch_Level, :Start_Date, :HeadChurch_Code, :Created_By);
+                    """
+                ),
+                dict(
+                    Church_Code=church.Code,
+                    Level_Code=church.Level_Code,
+                    LeadChurch_Code=lead_church.Code,
+                    LeadChurch_Level=lead_church.Level_Code,
+                    Start_Date=datetime.now(),
+                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Created_By=self.current_user.Usercode,
+                ),
+            )
+            self.db.commit()
+            new_church_lead = self.db.execute(
+                text(
+                    """
+                    SELECT CL.*, C.Name AS Church_Name, L.Name AS LeadChurch_Name
+                    FROM tblChurchLeads CL
+                    LEFT JOIN tblChurches C ON C.Code = CL.Church_Code
+                    LEFT JOIN tblChurches L ON L.Code = CL.LeadChurch_Code
+                    WHERE CL.Id = LAST_INSERT_ID();
+                    """
+                )
+            ).first()
+            return new_church_lead
+        except Exception as err:
+            self.db.rollback()
+            raise err
+
+    async def approve_church_lead_by_code(self, church_code: str, lead_code: str):
+        try:
+            # fetch church data
+            church = await self.church_services.get_church_by_id_code(church_code)
+            # fetch lead church data
+            lead_church = await self.church_services.get_church_by_id_code(lead_code)
+            # fetch church leads
+            church_leads = await self.get_church_leads_by_church_code(church_code)
+            # check if church lead is active or already approved
+            for church_lead in church_leads:
+                if (
+                    church_lead.LeadChurch_Code == lead_church.Code
+                    and church_lead.Is_Active
+                    and church_lead.Status == "APR"
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Church Lead mapping is already approved.",
+                    )
+                elif (
+                    church_lead.LeadChurch_Code == lead_church.Code
+                    and church_lead.Is_Active
+                    and church_lead.Status != "APR"
+                ):
+                    break
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"This Church Lead mapping is no longer active.",
+                )
+            # get church level no
+            level = get_level(
+                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+            )
+            # set user access
+            set_user_access(
+                self.current_user_access,
+                headchurch_code=self.current_user.HeadChurch_Code,
+                role_code=["ADM", "SAD"],
+                # level_code=["CHU"],
+                level_no=level.Level_No - 1,
+                module_code=["ALLM", "HRCH"],
+                # submodule_code=["HEAD", "CL1"],
+                access_type=["ED"],
+            )
+            # approve church leads
+            self.db.execute(
+                text(
+                    """
+                    UPDATE tblChurchLeads
+                    SET Status = :Status, Status_Date = :Status_Date, Status_By = :Status_By, Modified_By = :Modified_By
+                    WHERE Church_Code = :Church_Code 
+                    AND LeadChurch_Code = :LeadChurch_Code
+                    AND HeadChurch_Code = :HeadChurch_Code
+                    AND Is_Active = :Is_Active;
+                    """
+                ),
+                dict(
+                    Status="APR",
+                    Status_Date=datetime.now(),
+                    Status_By=self.current_user.Usercode,
+                    Modified_By=self.current_user.Usercode,
+                    Church_Code=church.Code,
+                    LeadChurch_Code=lead_church.Code,
+                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Is_Active=1,
+                ),
+            )
+            self.db.commit()
+            return await self.get_current_church_lead_by_code(church.Code)
         except Exception as err:
             self.db.rollback()
             raise err
