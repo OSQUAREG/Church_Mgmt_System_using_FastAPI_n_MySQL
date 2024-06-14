@@ -174,14 +174,14 @@ openapi_tags = [
         "name": "Members Sub-Module Operations",
         "description": "Operations on the Sub Groups Sub-Module",
     },
-    # Member Church Sub Module
+    # Member-Branch Sub Module
     {
-        "name": "Member Church Sub-Module Operations - Admin only",
-        "description": "Operations on the Member's Church by Admin",
+        "name": "Member-Branch Sub-Module Operations - Admin only",
+        "description": "Operations on the Member's Branch by Admin",
     },
     {
-        "name": "Member Church Sub-Module Operations",
-        "description": "Operations on the Member's Church Sub-Module",
+        "name": "Member-Branch Sub-Module Operations",
+        "description": "Operations on the Member's Branch Sub-Module",
     },
 ]
 

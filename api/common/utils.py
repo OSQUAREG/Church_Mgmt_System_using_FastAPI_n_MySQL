@@ -104,6 +104,62 @@ def check_if_new_code_name_exist(
     return False
 
 
+def check_duplicate_entry(
+    db: Session,
+    headchurch_code: str,
+    table_name: str,
+    column_name: str,
+    column_value,
+    column_old_value: str | None = None,
+    column_name2: str | None = None,
+    column_value2: str | None = None,
+    column_old_value2: str | None = None,
+    column_name3: str | None = None,
+    column_value3: str | None = None,
+    column_old_value3: str | None = None,
+):
+    if column_old_value and column_value == column_old_value:
+        return False
+    if column_old_value2 and column_value2 == column_old_value2:
+        return False
+    if column_old_value3 and column_value3 == column_old_value3:
+        return False
+
+    query = f"""
+    SELECT * FROM {table_name} 
+    WHERE HeadChurch_Code = :Headchurch_Code AND (
+        {column_name} = :column_value
+    """
+
+    params = {"Headchurch_Code": headchurch_code, "column_value": column_value}
+
+    if column_name2 and column_value2:
+        query += f" AND {column_name2} = :column_value2"
+        params["column_value2"] = column_value2
+
+    if column_name3 and column_value3:
+        query += f" AND {column_name3} = :column_value3"
+        params["column_value3"] = column_value3
+
+    query += ");"
+
+    duplicate_check = db.execute(text(query), params).first()
+
+    if duplicate_check:
+        error_detail = f"Duplicate Error: {column_name}: '{column_value}'"
+        if column_name2 and column_value2:
+            error_detail += f" plus {column_name2}: '{column_value2}'"
+        if column_name3 and column_value3:
+            error_detail += f" and {column_name3}: '{column_value3}'"
+        error_detail += " already exists."
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=error_detail,
+        )
+    return False
+
+
 def custom_title_case(s):
     words = s.split()
     for i, word in enumerate(words):
@@ -151,7 +207,7 @@ def set_user_access(
 
 
 def get_level(code: str, head_code: str, db: Session):
-    """code: can be Level_Code or ChurchLevel_Code or Church_Code"""
+    """code: can be Level_Code or ChurchLevel_Code or Church_Code."""
     level_no = db.execute(
         text(
             """
@@ -172,7 +228,9 @@ def get_level(code: str, head_code: str, db: Session):
     return level_no
 
 
-def validate_code_type(code: str, category: str, db: Session):
+def validate_code_type(code: str | None, category: str, db: Session):
+    if not code:
+        return None
     code_type = db.execute(
         text(
             """

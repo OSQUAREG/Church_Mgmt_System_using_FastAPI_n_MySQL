@@ -1,7 +1,10 @@
+import time
 from typing import Annotated
+
 from fastapi import Depends  # type: ignore
 from sqlalchemy import create_engine, text, inspect  # type: ignore
 from sqlalchemy.orm import sessionmaker, Session  # type: ignore
+from sqlalchemy.exc import OperationalError  # type: ignore
 
 from .config import settings
 
@@ -15,16 +18,30 @@ SQLALCHEMY_DATABASE_URL = (
     f"mysql+mysqlconnector://{user}:{str(password)}@{host}:{port}/{database}"
 )
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    pool_pre_ping=True,
+    echo=False,
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=30,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 # Connecting to the Database
 def get_db() -> Session:
+    max_attempt = 5
+    attempts = 0
     db = SessionLocal()
     print("Database connection was successful!")
     try:
         yield db
+    # except OperationalError:
+    #     if max_attempt > attempts + 1:
+    #         attempts += 1
+    #         print(f"Database connection attempt {attempts} failed. Retrying...")
+    #         time.sleep(3)
     finally:
         db.close()
         print("Database connection closed.")

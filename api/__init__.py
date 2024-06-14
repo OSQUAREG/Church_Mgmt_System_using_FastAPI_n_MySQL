@@ -16,8 +16,8 @@ from .hierarchy_mgmt.routes import (
 from .membership_mgmt.routes import (
     members_router,
     members_adm_router,
-    member_church_router,
-    member_church_adm_router,
+    member_branch_router,
+    member_branch_adm_router,
 )
 from .user_mgmt.routes import user_route
 from .common.config import settings
@@ -67,8 +67,8 @@ def create_app(prefix=settings.dev_prefix):
     app.include_router(churchleads_adm_router, prefix=prefix)
     app.include_router(members_router, prefix=prefix)
     app.include_router(members_adm_router, prefix=prefix)
-    app.include_router(member_church_router, prefix=prefix)
-    app.include_router(member_church_adm_router, prefix=prefix)
+    app.include_router(member_branch_router, prefix=prefix)
+    app.include_router(member_branch_adm_router, prefix=prefix)
     app.include_router(user_route, prefix=prefix)
 
     # Templates

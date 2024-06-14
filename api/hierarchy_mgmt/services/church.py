@@ -8,7 +8,12 @@ from sqlalchemy.orm import Session  # type: ignore
 from ...authentication.models.auth import User, UserAccess
 from ...hierarchy_mgmt.models.church import ChurchBase, ChurchUpdate
 from ...common.database import get_db
-from ...common.utils import check_if_new_code_name_exist, get_level, set_user_access
+from ...common.utils import (
+    check_duplicate_entry,
+    check_if_new_code_name_exist,
+    get_level,
+    set_user_access,
+)
 from ...common.dependencies import (
     get_current_user,
     get_current_user_access,
@@ -61,6 +66,25 @@ class ChurchServices:
                 db=self.db,
                 action="create",
                 headchurch_code=self.current_user.HeadChurch_Code,
+            )
+            # cheeck duplicate entry
+            check_duplicate_entry(
+                self.db,
+                self.current_user.HeadChurch_Code,
+                "tblChurches",
+                "Contact_No",
+                church.Contact_No,
+                "Level_Code",
+                level_code,
+            )
+            check_duplicate_entry(
+                self.db,
+                self.current_user.HeadChurch_Code,
+                "tblChurches",
+                "Contact_Email",
+                church.Contact_Email,
+                "Level_Code",
+                level_code,
             )
             # insert new church
             self.db.execute(
@@ -307,6 +331,25 @@ class ChurchServices:
                     "update",
                     old_church.Name,
                 )
+            # cheeck duplicate entry
+            check_duplicate_entry(
+                self.db,
+                self.current_user.HeadChurch_Code,
+                "tblChurches",
+                "Contact_No",
+                church.Contact_No,
+                "Level_Code",
+                old_church.Level_Code,
+            )
+            check_duplicate_entry(
+                self.db,
+                self.current_user.HeadChurch_Code,
+                "tblChurches",
+                "Contact_Email",
+                church.Contact_Email,
+                "Level_Code",
+                old_church.Level_Code,
+            )
             # update church data
             self.db.execute(
                 text(

@@ -34,7 +34,7 @@ class UserServices:
         """Create User From Member: accessible to only church admins of same/higher level/church."""
         try:
             # fetch user member data
-            user = await self.member_services.get_member_by_code(member_code)
+            user = await self.member_services.get_member_by_code_id(member_code)
             level = get_level(
                 user.Church_Code, self.current_user.HeadChurch_Code, self.db
             )

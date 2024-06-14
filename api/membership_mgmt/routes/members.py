@@ -4,11 +4,11 @@ from fastapi import APIRouter, status, Depends, Path  # type: ignore
 
 from ...membership_mgmt.services import get_member_services, MemberServices
 from ...membership_mgmt.models.members import (
+    MemberBranchExitIn,
+    MemberBranchJoinIn,
     MemberIn,
     MemberResponse,
     MemberUpdate,
-    MemberBranchExit,
-    MemberBranchJoin,
     MemberBranchResponse,
     MemberBranchUpdate,
 )
@@ -33,11 +33,13 @@ members_adm_router = APIRouter(
 - Create New Member
 - Activate Member by Code
 - Deactivate Member by Code
+- Promote Member to Clergy
+- Demote Member from Clergy
 """
 
 
-member_church_router = APIRouter(
-    prefix="/member_church", tags=["Member Church Sub-Module Operations"]
+member_branch_router = APIRouter(
+    prefix="/member_branch", tags=["Member-Branch Sub-Module Operations"]
 )
 """
 ### Member Church Routes
@@ -46,15 +48,16 @@ member_church_router = APIRouter(
 """
 
 
-member_church_adm_router = APIRouter(
-    prefix="/admin/member_church",
-    tags=["Member Church Sub-Module Operations - Admin only"],
+member_branch_adm_router = APIRouter(
+    prefix="/admin/member_branch",
+    tags=["Member-Branch Sub-Module Operations - Admin only"],
 )
 """
 ### Member Church Admin Routes
 - Exit Member From All Churches
 - Exit Memeber From Church
 - Join Member To Church
+
 """
 
 
@@ -76,7 +79,7 @@ async def create_new_member(
         status_code=status.HTTP_201_CREATED,
         message=(
             f"Successfully created new member: '{new_member.Title} {new_member.Title2} {new_member.First_Name} {new_member.Last_Name} ({new_member.Code})"
-            + f" / ({new_member.Clergy_Code})'"
+            + f" / (Clergy Code: {new_member.Clergy_Code})'"
             if new_member.Clergy_Code
             else "'"
         ),
@@ -94,17 +97,14 @@ async def deactivate_member(
     member_code: Annotated[
         str, Path(..., description="code of the member to be deactivated")
     ],
-    member_church: MemberBranchExit,
     member_services: Annotated[MemberServices, Depends(get_member_services)],
 ):
-    deactivated_member = await member_services.deactivate_member_by_code(
-        member_code, member_church
-    )
+    deactivated_member = await member_services.deactivate_member_by_code(member_code)
     # set response body
     response = dict(
         data=deactivated_member,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully deactivated Member: '{deactivated_member.First_Name}' with code: '{deactivated_member.Member_Code}'",
+        message=f"Successfully deactivated Member: '{deactivated_member.Title} {deactivated_member.Title2} {deactivated_member.First_Name} {deactivated_member.Last_Name} ({deactivated_member.Code})'",
     )
     return response
 
@@ -119,17 +119,61 @@ async def activate_member(
     member_code: Annotated[
         str, Path(..., description="code of the member to be activated")
     ],
-    member_church: MemberBranchUpdate,
+    member_branch: MemberBranchJoinIn,
     member_services: Annotated[MemberServices, Depends(get_member_services)],
 ):
     activated_member = await member_services.activate_member_by_code(
-        member_code, member_church
+        member_code, member_branch
     )
     # set response body
     response = dict(
         data=activated_member,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully activated Member: '{activated_member.First_Name}' with code: '{activated_member.Member_Code}'",
+        message=f"Successfully activated Member: '{activated_member.Title} {activated_member.Title2} {activated_member.First_Name} ({activated_member.Code})' in the church: '{activated_member.Branch_Code}'",
+    )
+    return response
+
+
+@members_adm_router.patch(
+    "/{member_code_id}/promote_to_clergy",
+    status_code=status.HTTP_200_OK,
+    name="Promote Member to Clergy",
+    response_model=MemberResponse,
+)
+async def promote_member_to_clergy(
+    member_code_id: Annotated[
+        str, Path(..., description="code of the member to be promoted to clergy")
+    ],
+    member_services: Annotated[MemberServices, Depends(get_member_services)],
+):
+    promoted_member = await member_services.promote_member_to_clergy(member_code_id)
+    # set response body
+    response = dict(
+        data=promoted_member,
+        status_code=status.HTTP_200_OK,
+        message=f"Successfully promoted Member: '{promoted_member.Title} {promoted_member.Title2} {promoted_member.First_Name} {promoted_member.Last_Name} ({promoted_member.Code})' to Clergy ({promoted_member.Clergy_Code})",
+    )
+    return response
+
+
+@members_adm_router.patch(
+    "/{member_code_id}/demote_from_clergy",
+    status_code=status.HTTP_200_OK,
+    name="Demote Member from Clergy",
+    response_model=MemberResponse,
+)
+async def demote_member_from_clergy(
+    member_code_id: Annotated[
+        str, Path(..., description="code of the member to be demoted from clergy")
+    ],
+    member_services: Annotated[MemberServices, Depends(get_member_services)],
+):
+    demoted_member = await member_services.demote_member_from_clergy(member_code_id)
+    # set response body
+    response = dict(
+        data=demoted_member,
+        status_code=status.HTTP_200_OK,
+        message=f"Successfully demoted Member: '{demoted_member.Title} {demoted_member.Title2} {demoted_member.First_Name} {demoted_member.Last_Name} ({demoted_member.Code})' from Clergy",
     )
     return response
 
@@ -148,27 +192,7 @@ async def get_all_members(
     response = dict(
         data=members,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully fetched {len(members)} Members",
-    )
-    return response
-
-
-# Get Member by Code
-@members_router.get(
-    "/{code}",
-    name="Get Member by Code",
-    response_model=MemberResponse,
-)
-async def get_member_by_code(
-    code: str,
-    member_services: Annotated[MemberServices, Depends(get_member_services)],
-):
-    member = await member_services.get_member_by_code(code)
-    # set response body
-    response = dict(
-        data=member,
-        status_code=status.HTTP_200_OK,
-        message=f"Successfully fetched Member: '{member.First_Name}' with code: '{member.Member_Code}'",
+        message=f"Successfully retrived {len(members)} Members",
     )
     return response
 
@@ -186,8 +210,39 @@ async def get_current_user_member(
     # set response body
     response = dict(
         data=member,
+        status_code=status.HTTP_200_OK if member else status.HTTP_204_NO_CONTENT,
+        message=(
+            f"Successfully retrieved Member: '{member.Title} {member.Title2} {member.First_Name} {member.Last_Name} ({member.Code})'"
+            if member
+            else "Current User not a church member"
+        ),
+    )
+    return response
+
+
+# Get Member by Code
+@members_router.get(
+    "/{member_code_id}",
+    name="Get Member by Code or Id",
+    response_model=MemberResponse,
+)
+async def get_member_by_code_id(
+    member_code_id: str,
+    member_services: Annotated[MemberServices, Depends(get_member_services)],
+):
+    member = await member_services.get_member_by_code_id(member_code_id)
+    # set response body
+    response = dict(
+        data=member,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully retrieved Member: '{member.First_Name}' with code: '{member.Member_Code}'",
+        message=(
+            f"Successfully created new member: '{member.Title} {member.Title2} {member.First_Name} {member.Last_Name} ({member.Code})"
+            + (
+                f" / (Clergy Code: {member.Clergy_Code})'"
+                if member.Clergy_Code
+                else "'"
+            )
+        ),
     )
     return response
 
@@ -212,47 +267,6 @@ async def get_members_by_church(
     return response
 
 
-# Get Members by Level Code
-@members_router.get(
-    "/level/{level_code}",
-    name="Get Members by Level Code",
-    response_model=MemberResponse,
-)
-async def get_members_by_level(
-    level_code: str,
-    member_services: Annotated[MemberServices, Depends(get_member_services)],
-):
-    members = await member_services.get_members_by_level(level_code)
-    # set response body
-    response = dict(
-        data=members,
-        status_code=status.HTTP_200_OK,
-        message=f"Successfully retrieved {len(members)} Members",
-    )
-    return response
-
-
-# Update Member by Code
-@members_router.put(
-    "/{code}/update",
-    name="Update Member by Code",
-    response_model=MemberResponse,
-)
-async def update_member_by_code(
-    member_code: str,
-    member: MemberUpdate,
-    member_services: Annotated[MemberServices, Depends(get_member_services)],
-):
-    updated_member = await member_services.update_member_by_code(member_code, member)
-    # set response body
-    response = dict(
-        data=updated_member,
-        status_code=status.HTTP_200_OK,
-        message=f"Successfully updated Member: '{updated_member.First_Name}' with code: '{updated_member.Member_Code}'",
-    )
-    return response
-
-
 # Update Current User Member
 @members_router.put(
     "/current/update",
@@ -267,127 +281,222 @@ async def update_current_user_member(
     # set response body
     response = dict(
         data=updated_member,
-        status_code=status.HTTP_200_OK,
-        message=f"Successfully updated Member: '{updated_member.First_Name}' with code: '{updated_member.Member_Code}'",
+        status_code=(
+            status.HTTP_200_OK if updated_member else status.HTTP_204_NO_CONTENT
+        ),
+        message=(
+            f"Successfully updated Member: '{updated_member.Title} {updated_member.Title2} {updated_member.First_Name} ({updated_member.Code})'"
+            if updated_member
+            else "Current User not a church member"
+        ),
     )
     return response
 
 
-# Get Member Church by Code
-@member_church_router.get(
-    "/{member_code}/church/{church_code}",
-    status_code=status.HTTP_200_OK,
-    name="Get Member Church by Code",
-    response_model=MemberBranchResponse,
+# Update Member by Code or Id
+@members_router.put(
+    "/{code}/update",
+    name="Update Member by Code or Id",
+    response_model=MemberResponse,
 )
-async def get_member_church_by_code(
+async def update_member_by_code(
     member_code: str,
-    church_code: str,
+    member: MemberUpdate,
     member_services: Annotated[MemberServices, Depends(get_member_services)],
-    is_active: Optional[bool] = None,
 ):
-    member_church = await member_services.get_member_church_by_member_code(
-        member_code, church_code, is_active
-    )
+    updated_member = await member_services.update_member_by_code_id(member_code, member)
     # set response body
     response = dict(
-        data=member_church,
+        data=updated_member,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully retrieved '{member_church.Member_Code}' Member's Church'",
+        message=f"Successfully updated Member: '{updated_member.Title} {updated_member.Title2} {updated_member.First_Name} {updated_member.Last_Name} ({updated_member.Code})'",
     )
     return response
 
 
-# Get Member's All Churches
-@member_church_router.get(
-    "/{member_code}/churches",
+# Get Current Member-Branch
+@member_branch_router.get(
+    "/{member_code}/branch",
     status_code=status.HTTP_200_OK,
-    name="Get Member's All Churches",
+    name="Get Member Current Branch",
     response_model=MemberBranchResponse,
 )
-async def get_member_all_churches(
+async def get_member_current_branch(
+    member_code: str,
+    member_services: Annotated[MemberServices, Depends(get_member_services)],
+):
+    member_branch = await member_services.get_member_branches(
+        member_code, is_active=True
+    )
+    # set response body
+    response = dict(
+        data=member_branch,
+        status_code=status.HTTP_200_OK,
+        message=f"Successfully retrieved '{member_code.upper()}' Member's Current Branch'",
+    )
+    return response
+
+
+# Get Specific Member-Branch by Code
+@member_branch_router.get(
+    "/{member_code}/branch/{branch_code}",
+    status_code=status.HTTP_200_OK,
+    name="Get Specific Member-Branch by Code",
+    response_model=MemberBranchResponse,
+)
+async def get_member_branch_by_code(
+    member_code: str,
+    branch_code: str,
+    member_services: Annotated[MemberServices, Depends(get_member_services)],
+    is_active: Optional[bool] = None,
+):
+    member_branches = await member_services.get_member_branches(
+        member_code, branch_code, is_active=is_active
+    )
+    # set response body
+    response = dict(
+        data=member_branches,
+        status_code=status.HTTP_200_OK,
+        message=f"Successfully retrieved {len(member_branches)}"
+        + (
+            (" current" if is_active == 1 else " previous")
+            if is_active is not None
+            else ""
+        )
+        + f" Member-Branch '{branch_code.upper()}'"
+        + f" records for Member: '{member_code.upper()}'",
+    )
+    return response
+
+
+# Get All Member-Branches by Member Code
+@member_branch_router.get(
+    "/{member_code}/branches",
+    status_code=status.HTTP_200_OK,
+    name="Get All Member-Branches by Member Code",
+    response_model=MemberBranchResponse,
+)
+async def get_member_all_branches(
     member_code: str,
     member_services: Annotated[MemberServices, Depends(get_member_services)],
     is_active: Optional[bool] = None,
 ):
-    member_churches = await member_services.get_member_all_churches_by_code(
-        member_code, is_active
+    member_branches = await member_services.get_member_branches(
+        member_code, is_active=is_active
     )
     # set response body
     response = dict(
-        data=member_churches,
+        data=member_branches,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully retrieved '{len(member_churches)}' Member's All Churches",
+        message=f"Successfully retrieved {len(member_branches)}"
+        + (
+            (" current" if is_active == 1 else " previous")
+            if is_active is not None
+            else ""
+        )
+        + (
+            " Member-Branch records"
+            if {len(member_branches) > 1}
+            else " Member-Branch records"
+        )
+        + f" for Member: '{member_code.upper()}'",
     )
     return response
 
 
 # Exit Member From Church
-@member_church_adm_router.patch(
-    "/church/{member_code}/exit",
+@member_branch_adm_router.patch(
+    "/{member_code}/exit",
     status_code=status.HTTP_200_OK,
     name="Exit Member From Church",
-    response_model=MemberResponse,
+    response_model=MemberBranchResponse,
 )
-async def exit_member_from_church(
+async def exit_member_from_branch(
     member_code: Annotated[str, Path(..., description="code of member to be exited")],
-    member_exit: MemberBranchExit,
+    member_exit: MemberBranchExitIn,
     member_services: Annotated[MemberServices, Depends(get_member_services)],
 ):
-    exited_member = await member_services.exit_member_from_church(
+    exited_member = await member_services.exit_member_from_branch(
         member_code, member_exit
     )
-    # set response body
-    response = dict(
-        data=exited_member,
-        status_code=status.HTTP_200_OK,
-        message=f"Successfully exited Member: '{exited_member.Member_Code}' - '{exited_member.First_Name}' from '{member_exit.Church_Code}' Church",
-    )
-    return response
+    for member in exited_member:
+        # set response body
+        response = dict(
+            data=exited_member,
+            status_code=status.HTTP_200_OK,
+            message=f"Successfully exited Member: '{member.Title} {member.Title2} {member.First_Name} {member.Last_Name} ({member.Member_Code})' from Branch: '{member_exit.Branch_Code.upper()}'",
+        )
+        return response
 
 
 # Exit Member From All Churches
-@member_church_adm_router.patch(
-    "/church/exit_all",
+@member_branch_adm_router.patch(
+    "/{member_code}/exit_all",
     status_code=status.HTTP_200_OK,
     name="Exit Member From All Churches",
-    response_model=MemberResponse,
+    response_model=MemberBranchResponse,
 )
-async def exit_member_from_all_churches(
+async def exit_member_from_all_branches(
     member_code: str,
     member_services: Annotated[MemberServices, Depends(get_member_services)],
 ):
-    exited_member = await member_services.exit_member_from_all_churches(member_code)
-    # set response body
-    response = dict(
-        data=exited_member,
-        status_code=status.HTTP_200_OK,
-        message=f"Successfully exited Member: '{exited_member.Member_Code}' - '{exited_member.First_Name}' from all Churches",
-    )
-    return response
+    exited_member = await member_services.exit_member_from_all_branches(member_code)
+    for member in exited_member:
+        # set response body
+        response = dict(
+            data=exited_member,
+            status_code=status.HTTP_200_OK,
+            message=f"Successfully exited Member: '{member.Title} {member.Title2} {member.First_Name} {member.Last_Name} ({member.Member_Code})' from all Branches",
+        )
+        return response
 
 
 # Join Member To Church
-@member_church_adm_router.patch(
-    "/church/{member_code}/join",
+@member_branch_adm_router.patch(
+    "/{member_code}/join",
     status_code=status.HTTP_200_OK,
     name="Join Member To Church",
-    response_model=MemberResponse,
+    response_model=MemberBranchResponse,
 )
-async def join_member_to_church(
+async def join_member_to_branch(
     member_code: Annotated[
         str, Path(..., description="code of the member to be joined")
     ],
-    member_join: MemberBranchJoin,
+    member_join: MemberBranchJoinIn,
     member_services: Annotated[MemberServices, Depends(get_member_services)],
 ):
-    joined_member = await member_services.join_member_to_church(
+    joined_member = await member_services.join_member_to_branch(
         member_code, member_join
+    )
+    for member in joined_member:
+        # set response body
+        response = dict(
+            data=joined_member,
+            status_code=status.HTTP_200_OK,
+            message=f"Successfully joined Member: '{member.Title} {member.Title2} {member.First_Name} {member.Last_Name} ({member.Member_Code})' to Branch: '{member.Branch_Name} ({member.Branch_Code})'",
+        )
+        return response
+
+
+# Update Member-Branch Reason
+@member_branch_adm_router.put(
+    "/{member_branch_id}/update_reason",
+    status_code=status.HTTP_200_OK,
+    name="Update Member-Branch Reason",
+    response_model=MemberBranchResponse,
+)
+async def update_member_branch_reason(
+    member_branch_id: int,
+    member_branch: MemberBranchUpdate,
+    member_services: Annotated[MemberServices, Depends(get_member_services)],
+):
+    updated_member = await member_services.update_member_branch_reason(
+        member_branch_id, member_branch
     )
     # set response body
     response = dict(
-        data=joined_member,
+        data=updated_member,
         status_code=status.HTTP_200_OK,
-        message=f"Successfully joined Member: '{joined_member.Member_Code}' - '{joined_member.First_Name}' to '{member_join.Church_Code}' Church",
+        message=f"Successfully updated Member-Branch for: '{updated_member.Title} {updated_member.Title2} {updated_member.First_Name} {updated_member.Last_Name} ({updated_member.Member_Code})' to Branch: '{updated_member.Branch_Name} ({updated_member.Branch_Code})'",
     )
     return response

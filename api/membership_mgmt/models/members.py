@@ -73,14 +73,14 @@ class MemberBase(BaseModel):
 class MemberBranchJoinIn(BaseModel):
     Branch_Code: str
     Join_Date: datetime
-    Join_Reason: str
+    Join_Code: str
     Join_Note: Optional[str] = None
 
 
 class MemberBranchExitIn(BaseModel):
     Branch_Code: str
     Exit_Date: datetime
-    Exit_Reason: str
+    Exit_Code: str
     Exit_Note: Optional[str] = None
 
 
@@ -88,13 +88,17 @@ class MemberIn(MemberBranchJoinIn, MemberBase):
     pass
 
 
-class Member(MemberIn, MemberCode):
-    Exit_Date: Optional[datetime] = Field(default=None)
-    Exit_Reason: Optional[str] = Field(default=None)
-    Exit_Note: Optional[str] = Field(default=None)
-    Is_User: Optional[bool] = Field(default=False)
-    Clergy_Code: Optional[str] = Field(default=None)
-    Is_Active: Optional[bool] = Field(default=True)
+class Member(MemberBase, MemberCode):
+    Branch_Code: Optional[str] = None
+    Join_Date: Optional[datetime] = None
+    Join_Code: Optional[str] = None
+    Join_Note: Optional[str] = None
+    Exit_Date: Optional[datetime] = None
+    Exit_Code: Optional[str] = None
+    Exit_Note: Optional[str] = None
+    Is_User: Optional[bool] = False
+    Clergy_Code: Optional[str] = None
+    Is_Active: Optional[bool] = True
     HeadChurch_Code: Optional[str] = Field(examples=["TEST"], max_length=4)
     Created_Date: Optional[datetime] = None
     Created_By: Optional[str] = None
@@ -109,28 +113,23 @@ class MemberResponse(BaseModel):
     data: Union[list[Member], Member, None] = None
 
 
-class MemberBranchJoin(MemberBranchJoinIn):
-    Member_Code: str
-
-
-class MemberBranchExit(MemberBranchExitIn):
-    Member_Code: str
-
-
 class MemberBranchOut(BaseModel):
+    Id: int
     Member_Code: str
+    Title: str
+    Title2: str
     First_Name: str
     Middle_Name: str
     Last_Name: str
     Branch_Code: str
-    Church_Name: str
+    Branch_Name: str
     Join_Date: datetime
-    Join_Reason: str
+    Join_Code: str
     Join_Note: Optional[str] = None
     Exit_Date: Optional[datetime] = None
-    Exit_Reason: Optional[str] = None
+    Exit_Code: Optional[str] = None
     Exit_Note: Optional[str] = None
-    HeadChurch_Code: str
+    HeadChurch_Code: Optional[str] = None
     Is_Active: Optional[bool] = Field(default=True)
     Created_Date: Optional[datetime] = None
     Created_By: Optional[str] = None
@@ -156,12 +155,12 @@ class MemberUpdate(BaseModel):
         default=None, examples=["This is the address of the Member"], max_length=500
     )
     Date_of_Birth: Optional[date] = Field(default=None, examples=["2000-12-31"])
-    Gender: Optional[str] = Field(default=None, examples=["Male"], max_length=1)
-    Marital_Status: Optional[str] = Field(
-        default=None, examples=["Single"], max_length=3
+    Gender: Optional[str] = Field(default=None, examples=["M"], max_length=1)
+    Marital_Status: Optional[str] = Field(default=None, examples=["MRD"], max_length=3)
+    Employ_Status: Optional[str] = Field(default=None, examples=["EMPD"], max_length=4)
+    Occupation: Optional[str] = Field(
+        default=None, examples=["Professor"], max_length=100
     )
-    Employ_Status: Optional[str] = Field(default=None, examples=["EMPD"], max_length=3)
-    Occupation: Optional[str] = Field(default=None, examples=["Doctor"], max_length=100)
     Office_Address: Optional[str] = Field(
         default=None, examples=["This is the address of the Office"], max_length=500
     )
@@ -187,22 +186,12 @@ class MemberUpdate(BaseModel):
     Contact_Email2: Optional[EmailStr] = Field(
         default=None, examples=["john.doe@example.com"], max_length=255
     )
-    Is_User: Optional[bool] = Field(default=False)
     Town_Code: Optional[str] = Field(default=None, examples=["BEN"], max_length=4)
     State_Code: Optional[str] = Field(default=None, examples=["EDO"], max_length=4)
     Region_Code: Optional[str] = Field(default=None, examples=["SOUT"], max_length=4)
     Country_Code: Optional[str] = Field(default=None, examples=["NIG"], max_length=4)
     Type: Optional[str] = Field(default=None, examples=["MBR"], max_length=3)
-    # Is_Clergy: Optional[bool] = Field(default=False)
-    # Clergy_Code: Optional[str] = Field(default=None)
-    HeadChurch_Code: Optional[str] = Field(
-        default=None, examples=["TEST"], max_length=4
-    )
-    Is_Active: Optional[bool] = Field(default=True)
-    Created_Date: Optional[datetime] = None
-    Created_By: Optional[str] = None
-    Modified_Date: Optional[datetime] = None
-    Modified_By: Optional[str] = None
+    Is_Clergy: Optional[bool] = Field(default=False)
 
     @validator(
         "First_Name",
@@ -224,12 +213,10 @@ class MemberUpdate(BaseModel):
 
 
 class MemberBranchUpdate(BaseModel):
-    Member_Code: Optional[str] = None
-    Branch_Code: Optional[str] = None
     Join_Date: Optional[datetime] = None
-    Join_Reason: Optional[str] = None
+    Join_Code: Optional[str] = None
     Join_Note: Optional[str] = None
     Exit_Date: Optional[datetime] = None
-    Exit_Reason: Optional[str] = None
+    Exit_Code: Optional[str] = None
     Exit_Note: Optional[str] = None
-    Is_Active: Optional[bool] = True
+    # Is_Active: Optional[bool] = True
