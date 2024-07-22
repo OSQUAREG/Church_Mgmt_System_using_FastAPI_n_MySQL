@@ -4,18 +4,20 @@ from fastapi import APIRouter, status, Depends, Path  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
 from ...common.database import get_db
-from ...hierarchy_mgmt.services.head_church import (
+from ..services.church_heads import (
     HeadChurchServices,
     get_head_church_services,
 )
-from ...hierarchy_mgmt.models.head_church import (
+from ..models.church_heads import (
     HeadChurchCreate,
     HeadChurchResponse,
     HeadChurchUpdateIn,
 )
+from ...swagger_doc import tags
 
 head_chu_router = APIRouter(
-    prefix="/head_church", tags=["Head Church Sub-Module Operations"]
+    prefix="/head_church",
+    tags=[f"{tags['head_church']['module']}: {tags['head_church']['submodule']}"],
 )
 
 """
@@ -27,7 +29,9 @@ Head Church Routes
 
 head_chu_adm_router = APIRouter(
     prefix="/admin/head_church",
-    tags=["Head Church Sub-Module Operations - Super Admin only"],
+    tags=[
+        f"{tags['head_church']['module']}: {tags['head_church']['submodule']}: Super Admin only",
+    ],
 )
 
 """
@@ -42,6 +46,8 @@ Head Church Admin Routes
     "/create",
     status_code=status.HTTP_201_CREATED,
     name="Create New Head Church",
+    summary="Create New Head Church",
+    description="## Create New Head Church",
     response_model=HeadChurchResponse,
 )
 async def create_new_head_church(
@@ -62,7 +68,9 @@ async def create_new_head_church(
 @head_chu_router.get(
     "/{code}",
     status_code=status.HTTP_200_OK,
-    name="Get Head Church by Code",
+    name="Get Head Church",
+    summary="Get Head Church by Code",
+    description="## Retrieve Head Church by Code",
     response_model=HeadChurchResponse,
 )
 async def get_head_church_by_code(
@@ -87,7 +95,9 @@ async def get_head_church_by_code(
 @head_chu_router.put(
     "/update/{code}",
     status_code=status.HTTP_200_OK,
-    name="Update Head Church by Code",
+    name="Update Head Church",
+    summary="Update Head Church by Code",
+    description="## Update Head Church by Code",
     response_model=HeadChurchResponse,
 )
 async def update_head_church_by_code(
@@ -115,7 +125,9 @@ async def update_head_church_by_code(
 @head_chu_adm_router.patch(
     "/{code}/activate",
     status_code=status.HTTP_200_OK,
-    name="Activate Head Church by Code",
+    name="Activate Head Church",
+    summary="Activate Head Church by Code",
+    description="## Activate Head Church by Code",
     response_model=HeadChurchResponse,
 )
 async def activate_head_church_by_code(
@@ -142,7 +154,9 @@ async def activate_head_church_by_code(
 @head_chu_adm_router.patch(
     "/{code}/deactivate",
     status_code=status.HTTP_200_OK,
-    name="Deactivate Head Church by Code",
+    name="Deactivate Head Church",
+    summary="Deactivate Head Church by Code",
+    description="## Deactivate Head Church by Code",
     response_model=HeadChurchResponse,
 )
 async def deactivate_head_church_by_code(
@@ -163,24 +177,3 @@ async def deactivate_head_church_by_code(
         message=f"Successsfully deactivated Head Church: '{deactivated_head_church.Name}' with code: '{code.upper()}'",
     )
     return response
-
-
-# # Get All Head Churches
-# @head_chu_adm_router.get(
-#     "/",
-#     status_code=status.HTTP_200_OK,
-#     name="Get All Head Churches",
-#     response_model=HeadChurchResponse,
-# )
-# async def get_all_head_churches(
-#     db: Annotated[Session, Depends(get_db)],
-#     current_user: Annotated[User, Depends(get_current_user)],
-# ):
-#     head_churches = HeadChurchAdminService().get_all_head_churches(db)
-#     # set response body
-#     response = dict(
-#         data=head_churches,
-#         status_code=status.HTTP_200_OK,
-#         message=f"Successsfully retrieved {len(head_churches)} Head Churches",
-#     )
-#     return response

@@ -14,6 +14,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 JWT_SECRET_KEY = settings.jwt_secret_key
 ALGORITHM = settings.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
+db_schema_headchu = settings.db_schema_headchu
+db_schema_generic = settings.db_schema_generic
 
 
 auth_credentials_exception = HTTPException(
@@ -36,7 +38,6 @@ class AuthService:
     - Re-Authenticate User Access
     - Re-verify Access Token
     - Get User Access
-
     """
 
     # Hash Password
@@ -47,14 +48,17 @@ class AuthService:
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         return pwd_context.verify(plain_password, hashed_password)
 
+    # Get User
     def get_user(self, username: str, db: Session):
         try:
             user = db.execute(
                 text(
-                    """
-                    SELECT A.Usercode, A.Password, A.Email, A.HeadChurch_Code, A.Is_Active, B.Title, B.Title2, B.First_Name, B.Last_Name FROM tblUser A
-                    LEFT JOIN tblMember B ON B.Code = A.Usercode
-                    WHERE Usercode = :Usercode;
+                    f"""
+                    SELECT A.Usercode, A.Password, A.Email, A.Head_Code, A.Is_Active, B.Title, B.Title2, B.First_Name, B.Last_Name, A.Is_Member, C.Name AS Head_Name
+                    FROM {db_schema_headchu}.tblUsers A
+                    LEFT JOIN {db_schema_headchu}.tblMembers B ON B.Code = A.Usercode
+                    LEFT JOIN {db_schema_generic}.tblChurchHeads C ON C.Code = A.Head_Code
+                    WHERE A.Usercode = :Usercode;
                     """
                 ),
                 dict(
@@ -69,10 +73,9 @@ class AuthService:
             # print("user fetched")
             return user
         except Exception as err:
-            db.rollback()
-            # print(err)
-            # print("user not fetched")
-            raise err
+            msg = "User not found" + str(err)
+            print(msg)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
 
     # Create Access Token
     def create_access_token(self, data: dict):
@@ -104,50 +107,43 @@ class AuthService:
             # print("access token not verified")
             raise auth_credentials_exception
 
-    # Authenticate User
-    def authenticate_user(
-        self,
-        username: str,
-        password: str,
-        db: Session,
-    ):
+    def authenticate_user(self, username: str, password: str, db: Session):
         try:
-            # get user from db
             user = self.get_user(username, db)
-            # verify user password
-            user_check = self.verify_password(password, user.Password)
-            if user_check is False:
+            if not self.verify_password(password, user.Password):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Oops! Incorrect username or password",
                 )
-            # print("user authenticated")
             return user
-        except Exception as err:
-            db.rollback()
-            # print(err)
-            # print("user not authenticated")
+        except HTTPException as err:
             raise err
+        except Exception as err:
+            msg = "Failed to authenticate user. Error: " + str(err)
+            print(msg)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=msg
+            )
 
     # Get User Access
-    def get_user_level(self, username: str, church_level: str, db: Session):
+    def get_user_level(self, username: str, level_code: str, db: Session):
         try:
             user_level = db.execute(
                 text(
-                    """
-                    SELECT DISTINCT A.Usercode, Password, Email, A.Level_Code, C.ChurchLevel_Code, A.HeadChurch_Code, D.Title, D.Title2, D.First_Name, D.Last_Name
-                    FROM tblUserRole A
-                    LEFT JOIN tblUser B ON B.Usercode = A.Usercode
-                    LEFT JOIN tblHeadChurchLevels C ON C.Level_Code = A.Level_Code AND C.Head_Code = A.HeadChurch_Code
-                    LEFT JOIN tblMember D ON D.Code = A.Usercode
+                    f"""
+                    SELECT DISTINCT A.Usercode, Password, Email, A.Level_Code, C.Level_Name, A.Church_Code, E.Name AS Church_Name, A.Head_Code, D.Title, D.Title2, D.First_Name, D.Last_Name
+                    FROM {db_schema_headchu}.tblUserRole A
+                    LEFT JOIN {db_schema_headchu}.tblUsers B ON B.Usercode = A.Usercode
+                    LEFT JOIN {db_schema_headchu}.tblChurchLevels C ON C.Code = A.Level_Code
+                    LEFT JOIN {db_schema_headchu}.tblMembers D ON D.Code = A.Usercode
+                    LEFT JOIN {db_schema_headchu}.tblChurches E ON E.Code = A.Church_Code
                     WHERE A.Is_Active = :Is_Active AND B.Is_Active = :Is_Active AND A.Status = :Status
-                        AND A.Usercode = :Usercode AND (A.Level_Code = :Level_Code OR C.ChurchLevel_Code = :ChurchLevel_Code);
+                        AND A.Usercode = :Usercode AND A.Level_Code = :Level_Code;
                     """
                 ),
                 dict(
                     Usercode=username,
-                    Level_Code=church_level,
-                    ChurchLevel_Code=church_level,
+                    Level_Code=level_code,
                     Is_Active=1,
                     Status="APR",
                 ),
@@ -160,9 +156,35 @@ class AuthService:
             # print("user level fetched")
             return user_level
         except Exception as err:
+            print(err)
+            print("user level not fetched")
+            raise err
+
+    def get_user_levels(self, username: str, db: Session):
+        try:
+            user_levels = db.execute(
+                text(
+                    f"""
+                    SELECT A.Level_Code, B.Level_Name
+                    FROM {db_schema_headchu}.tblUserRole A
+                    LEFT JOIN {db_schema_headchu}.tblChurchLevels B ON B.Code = A.Level_Code AND B.Head_Code = A.Head_Code
+                    WHERE A.Is_Active = :Is_Active AND B.Is_Active = :Is_Active AND A.Status = :Status
+                    AND Usercode = :Usercode;
+                    """
+                ),
+                dict(Usercode=username, Is_Active=1, Status="APR"),
+            ).all()
+            if not user_levels:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="You don't have access to any Church Levels.",
+                )
+            # print("user levels fetched")
+            return user_levels
+        except Exception as err:
             db.rollback()
             # print(err)
-            # print("user level not fetched")
+            # print("user levels not fetched")
             raise err
 
     # Re-Authenticate User Access
@@ -180,17 +202,7 @@ class AuthService:
                     detail=f"Oops! Please re-login and select a valid Church Level",
                 )
             # fetch user church level list from db
-            user_church_level_list = db.execute(
-                text(
-                    """
-                    SELECT A.Level_Code, B.ChurchLevel_Code
-                    FROM tblUserRole A
-                    LEFT JOIN tblHeadChurchLevels B ON B.Level_Code = A.Level_Code AND B.Head_Code = A.HeadChurch_Code
-                    WHERE A.Is_Active=1 AND B.Is_Active
-                    """
-                ),
-                dict(Usercode=current_user.Usercode),
-            ).all()
+            user_church_level_list = self.get_user_levels(current_user.Usercode, db)
             # check if user has access to church level
             if user_church_level_list is None:
                 raise HTTPException(
@@ -201,7 +213,7 @@ class AuthService:
             for user_church_level in user_church_level_list:
                 if (
                     user_church_level.Level_Code == church_level
-                    or user_church_level.ChurchLevel_Code == church_level
+                    or user_church_level.Code == church_level
                 ):
                     break
             else:
@@ -242,27 +254,27 @@ class AuthService:
             # print("user not re-verified")
             raise auth_credentials_exception
 
-    def get_user_access(self, username: str, church_level: str, db: Session):
+    def get_user_access(self, username: str, level_code: str, db: Session):
         try:
             user_access = db.execute(
                 text(
-                    """
-                    SELECT A.Usercode, D.Password, Email, Role_Code, A.Level_Code, F.Level_No, ChurchLevel_Code, Church_Level, Church_Code, Module_Code, SubModule_Code, Access_Type, A.HeadChurch_Code, G.First_Name, G.Last_Name, G.Title, G.Title2
-                    FROM tblUserRole A
-                    LEFT JOIN tblUserRoleSubModule B ON B.UserRole_Code = A.Code
-                    LEFT JOIN dfSubModuleAccess C ON C.Code = B.SubModuleAccess_Code
-                    LEFT JOIN tblUser D ON D.Usercode = A.Usercode
-                    LEFT JOIN tblHeadChurchLevels E ON E.Level_Code = A.Level_Code
-                    LEFT JOIN dfHierarchy F ON F.Code = A.Level_Code
-                    LEFT JOIN tblMember G ON G.Code = A.Usercode
-                    WHERE A.Is_Active = :Is_Active AND B.Is_Active = :Is_Active AND C.Is_Active = :Is_Active AND A.Status = :Status AND B.Status = :Status
-                        AND A.Usercode = :Usercode AND (A.Level_Code = :Level_Code OR E.ChurchLevel_Code = :ChurchLevel_Code);
+                    f"""
+                    SELECT A.Usercode, D.Password, D.Email, A.Role_Code, E.Hierarchy_Code, A.Level_Code, F.Level_No, E.Level_Name, A.Church_Code, A.Group_Code, C.Module_Code, C.SubModule_Code, C.Access_Type, A.Head_Code, G.First_Name, G.Last_Name, G.Title, G.Title2, D.Is_Member
+                    FROM {db_schema_headchu}.tblUserRole A
+                    LEFT JOIN {db_schema_headchu}.tblRoleSubModules B ON B.Role_Code = A.Role_Code
+                    LEFT JOIN {db_schema_generic}.tblSubModuleAccess C ON C.Code = B.SubModuleAccess_Code
+                    LEFT JOIN {db_schema_headchu}.tblUsers D ON D.Usercode = A.Usercode
+                    LEFT JOIN {db_schema_headchu}.tblChurchLevels E ON E.Code = A.Level_Code
+                    LEFT JOIN {db_schema_generic}.tblHierarchy F ON F.Code = E.Hierarchy_Code
+                    LEFT JOIN {db_schema_headchu}.tblMembers G ON G.Code = A.Usercode
+                    WHERE A.Is_Active = :Is_Active AND B.Is_Active = :Is_Active AND C.Is_Active = :Is_Active 
+                        AND A.Status = :Status AND B.Status = :Status
+                        AND A.Usercode = :Usercode AND A.Level_Code = :Level_Code;
                     """
                 ),
                 dict(
                     Usercode=username,
-                    Level_Code=church_level,
-                    ChurchLevel_Code=church_level,
+                    Level_Code=level_code,
                     Is_Active=1,
                     Status="APR",
                 ),
@@ -278,31 +290,4 @@ class AuthService:
             db.rollback()
             # print(err)
             # print("user access not fetched")
-            raise err
-
-    def get_user_levels(self, username: str, db: Session):
-        try:
-            user_levels = db.execute(
-                text(
-                    """
-                    SELECT A.Level_Code, B.ChurchLevel_Code, B.Church_Level
-                    FROM tblUserRole A
-                    LEFT JOIN tblHeadChurchLevels B ON B.Level_Code = A.Level_Code AND B.Head_Code = A.HeadChurch_Code
-                    WHERE A.Is_Active = :Is_Active AND B.Is_Active = :Is_Active AND A.Status = :Status
-                    AND Usercode = :Usercode;
-                    """
-                ),
-                dict(Usercode=username, Is_Active=1, Status="APR"),
-            ).all()
-            if not user_levels:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="You don't have access to any Church Levels.",
-                )
-            # print("user levels fetched")
-            return user_levels
-        except Exception as err:
-            db.rollback()
-            # print(err)
-            # print("user levels not fetched")
             raise err

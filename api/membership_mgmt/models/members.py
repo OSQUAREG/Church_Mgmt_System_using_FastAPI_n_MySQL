@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field, validator, EmailStr  # type: ignore
 from ...common.utils import custom_title_case, get_phonenumber
@@ -210,6 +210,46 @@ class MemberUpdate(BaseModel):
     @validator("Personal_Contact_No", "Contact_No", "Contact_No2")
     def get_phone_numbers(cls, v):
         return get_phonenumber(v) if v else None
+
+
+class MemberChurchHierarchy(BaseModel):
+    Member_Code: str
+    LeadCode_1: str
+    LeadName_1: str
+    LeadLevel_1: str
+    LeadCode_2: Optional[str] = None
+    LeadName_2: Optional[str] = None
+    LeadLevel_2: Optional[str] = None
+    LeadCode_3: Optional[str] = None
+    LeadName_3: Optional[str] = None
+    LeadLevel_3: Optional[str] = None
+    LeadCode_4: Optional[str] = None
+    LeadName_4: Optional[str] = None
+    LeadLevel_4: Optional[str] = None
+    LeadCode_5: Optional[str] = None
+    LeadName_5: Optional[str] = None
+    LeadLevel_5: Optional[str] = None
+    LeadCode_6: Optional[str] = None
+    LeadName_6: Optional[str] = None
+    LeadLevel_6: Optional[str] = None
+    LeadCode_7: Optional[str] = None
+    LeadName_7: Optional[str] = None
+    LeadLevel_7: Optional[str] = None
+    LeadCode_8: Optional[str] = None
+    LeadName_8: Optional[str] = None
+    LeadLevel_8: Optional[str] = None
+    LeadCode_9: Optional[str] = None
+    LeadName_9: Optional[str] = None
+    LeadLevel_9: Optional[str] = None
+    LeadCode_10: Optional[str] = None
+    LeadName_10: Optional[str] = None
+    LeadLevel_10: Optional[str] = None
+
+
+class MemberChurchHierarchyResponse(BaseModel):
+    status_code: int
+    message: str
+    data: Union[List[MemberChurchHierarchy], MemberChurchHierarchy, None] = None
 
 
 class MemberBranchUpdate(BaseModel):

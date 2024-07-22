@@ -1,11 +1,13 @@
 from typing import Annotated, Optional
 
+
 from fastapi import HTTPException, status, Depends  # type: ignore
 from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
-from ...hierarchy_mgmt.models.hierarchy import HierarchyUpdate
+from ...church_admin.models.hierarchy import HierarchyUpdate
 from ...authentication.models.auth import User, UserAccess
+from ...common.config import settings
 from ...common.database import get_db
 from ...common.utils import set_user_access
 from ...common.dependencies import (
@@ -13,6 +15,9 @@ from ...common.dependencies import (
     get_current_user_access,
     set_db_current_user,
 )
+
+db_schema_headchu = settings.db_schema_headchu
+db_schema_generic = settings.db_schema_generic
 
 
 class HierarchyService:
@@ -37,36 +42,34 @@ class HierarchyService:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
-                module_code=["ALLM", "HRCH"],
-                access_type=["VW"],
+                head_code=self.current_user.Head_Code,
+                module_code=["ALLM", "HCHM"],
+                access_type=["RD"],
             )
 
             hierarchies = (
                 self.db.execute(
                     text(
+                        f"""
+                        SELECT A.*, A.Code AS Level_Code, B.Level_No
+                        FROM {db_schema_headchu}.tblChurchLevels A
+                        LEFT JOIN {db_schema_generic}.tblHierarchy B ON B.Code = A.Hierarchy_Code
+                        WHERE Head_Code = :Head_Code;
                         """
-                    SELECT A.*, B.Level_No
-                    FROM tblHeadChurchLevels A
-                    LEFT JOIN dfHierarchy B ON B.Code = A.Level_Code
-                    WHERE Head_Code = :Head_Code;
-                    """
                     ),
-                    dict(Head_Code=self.current_user.HeadChurch_Code),
+                    dict(Head_Code=self.current_user.Head_Code),
                 ).all()
                 if is_active is None
                 else self.db.execute(
                     text(
+                        f"""
+                        SELECT A.*, A.Code AS Level_Code, B.Level_No 
+                        FROM {db_schema_headchu}.tblChurchLevels A
+                        LEFT JOIN {db_schema_generic}.tblHierarchy B ON B.Code = A.Hierarchy_Code
+                        WHERE Head_Code = :Head_Code AND A.Is_Active = :Is_Active;
                         """
-                    SELECT A.*, B.Level_No 
-                    FROM tblHeadChurchLevels A
-                    LEFT JOIN dfHierarchy B ON B.Code = A.Level_Code
-                    WHERE Head_Code = :Head_Code AND A.Is_Active = :Is_Active;
-                    """
                     ),
-                    dict(
-                        Head_Code=self.current_user.HeadChurch_Code, Is_Active=is_active
-                    ),
+                    dict(Head_Code=self.current_user.Head_Code, Is_Active=is_active),
                 ).all()
             )
             return hierarchies
@@ -79,27 +82,28 @@ class HierarchyService:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["ALLM", "HRCH"],
-                submodule_code=["ALLS", "HEAD", "HIER"],
-                access_type=["VW", "ED"],
+                module_code=["ALLM", "HCHM"],
+                submodule_code=["ALLS", "HEAD", "HCHL"],
+                access_type=["RD", "UP"],
             )
             # fetch data from self.db
             hierarchy = self.db.execute(
                 text(
-                    """
-                    SELECT A.*, Level_No
-                    FROM tblHeadChurchLevels A
-                    LEFT JOIN dfHierarchy B ON B.Code = A.Level_Code
-                    WHERE Head_Code = :Head_Code AND (ChurchLevel_Code = :ChurchLevel_Code OR Level_Code = :Level_Code);
+                    f"""
+                    SELECT A.*, A.Code AS Level_Code, B.Level_No
+                    FROM {db_schema_headchu}.tblChurchLevels A
+                    LEFT JOIN {db_schema_generic}.tblHierarchy B ON B.Code = A.Hierarchy_Code
+                    WHERE Head_Code = :Head_Code AND (A.Code = :Code OR Hierarchy_Code = :Hierarchy_Code);
                     """
                 ),
                 dict(
-                    Head_Code=self.current_user.HeadChurch_Code,
-                    ChurchLevel_Code=code,
+                    Head_Code=self.current_user.Head_Code,
+                    Code=code,
                     Level_Code=code,
+                    Hierarchy_Code=code,
                 ),
             ).first()
             if not hierarchy:
@@ -117,17 +121,17 @@ class HierarchyService:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["ALLM", "HRCH"],
-                submodule_code=["ALLS", "HEAD", "HIER"],
-                access_type=["ED"],
+                module_code=["ALLM", "HCHM"],
+                submodule_code=["ALLS", "HEAD", "HCHL"],
+                access_type=["UP"],
             )
             # fetch data from db
             hierarchy = await self.get_hierarchy_by_code(code)
             # print(hierarchy)
-            if self.current_user.HeadChurch_Code != hierarchy.Head_Code:
+            if self.current_user.Head_Code != hierarchy.Head_Code:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Access Denied: Operation not allowed.",
@@ -135,24 +139,23 @@ class HierarchyService:
             if hierarchy.Is_Active == 1:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Hierarchy: '{hierarchy.Church_Level} ({hierarchy.ChurchLevel_Code})' is already active.",
+                    detail=f"Church Hierarchy: '{hierarchy.Level_Name} ({hierarchy.Level_Code})' is already active.",
                 )
             self.db.execute(
                 text(
-                    """
-                    UPDATE tblHeadChurchLevels
+                    f"""
+                    UPDATE {db_schema_headchu}.tblChurchLevels
                     SET Is_Active = :Is_Active, Modified_By = :Modified_By
                     WHERE Head_Code = :Head_Code AND Is_Active = :Is_Active2 
-                        AND (Level_Code = :Level_Code OR ChurchLevel_Code = :ChurchLevel_Code);
+                        AND Code = :Code;
                     """
                 ),
                 dict(
                     Is_Active=1,
                     Modified_By=self.current_user.Usercode,
-                    Head_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Is_Active2=0,
-                    Level_Code=hierarchy.Level_Code,
-                    ChurchLevel_Code=code,
+                    Code=hierarchy.Level_Code,
                 ),
             )
             self.db.commit()
@@ -166,16 +169,16 @@ class HierarchyService:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["ALLM", "HRCH"],
-                submodule_code=["ALLS", "HEAD", "HIER"],
-                access_type=["ED"],
+                module_code=["ALLM", "HCHM"],
+                submodule_code=["ALLS", "HEAD", "HCHL"],
+                access_type=["UP"],
             )
             # fetch data from self.db
             hierarchy = await self.get_hierarchy_by_code(code)
-            if self.current_user.HeadChurch_Code != hierarchy.Head_Code:
+            if self.current_user.Head_Code != hierarchy.Head_Code:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Operation not allowed.",
@@ -183,24 +186,23 @@ class HierarchyService:
             if hierarchy.Is_Active == 0:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Hierarchy: '{hierarchy.Church_Level} ({hierarchy.ChurchLevel_Code})' is already inactive.",
+                    detail=f"Church Hierarchy: '{hierarchy.Level_Name} ({hierarchy.Level_Code})' is already inactive.",
                 )
             self.db.execute(
                 text(
-                    """
-                    UPDATE tblHeadChurchLevels 
+                    f"""
+                    UPDATE {db_schema_headchu}.tblChurchLevels 
                     SET Is_Active = :Is_Active, Modified_By = :Modified_By 
                     WHERE Head_Code = :Head_Code AND Is_Active = :Is_Active2 
-                        AND (Level_Code = :Level_Code OR ChurchLevel_Code = :ChurchLevel_Code);
+                        AND Code = :Code;
                     """
                 ),
                 dict(
                     Is_Active=0,
                     Modified_By=self.current_user.Usercode,
-                    Head_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Is_Active2=1,
-                    Level_Code=code,
-                    ChurchLevel_Code=code,
+                    Code=hierarchy.Level_Code,
                 ),
             )
             self.db.commit()
@@ -214,12 +216,12 @@ class HierarchyService:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["ALLM", "HRCH"],
-                submodule_code=["ALLS", "HEAD", "HIER"],
-                access_type=["ED"],
+                module_code=["ALLM", "HCHM"],
+                submodule_code=["ALLS", "HEAD", "HCHL"],
+                access_type=["UP"],
             )
             # fetch data from self.db
             old_hierarchy = await self.get_hierarchy_by_code(code)
@@ -230,7 +232,7 @@ class HierarchyService:
                     detail=f"Hierarchy with code: {code.upper()} not found",
                 )
             # checks if user is allowed to update
-            if self.current_user.HeadChurch_Code != old_hierarchy.Head_Code:
+            if self.current_user.Head_Code != old_hierarchy.Head_Code:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Operation not allowed.",
@@ -238,22 +240,22 @@ class HierarchyService:
             # updates hierarchy
             self.db.execute(
                 text(
-                    """
-                    UPDATE tblHeadChurchLevels 
-                    SET Church_Level = :Church_Level, ChurchLevel_Code = :ChurchLevel_Code, Is_Active = :Is_Active, Modified_By = :Modified_By 
-                    WHERE Head_Code = :Head_Code AND (ChurchLevel_Code = :OldChurchLevel_Code OR Level_Code = :Level_Code);
+                    f"""
+                    UPDATE {db_schema_headchu}.tblChurchLevels
+                    SET Level_Name = :Level_Name, Code = :Code, Is_Active = :Is_Active, Modified_By = :Modified_By
+                    WHERE Head_Code = :Head_Code AND (Code = :OldCode OR Hierarchy_Code = :Hierarchy_Code);
                     """
                 ),
                 dict(
-                    Church_Level=(
-                        hierarchy.Church_Level
-                        if hierarchy.Church_Level
-                        else old_hierarchy.Church_Level
+                    Level_Name=(
+                        hierarchy.Level_Name
+                        if hierarchy.Level_Name
+                        else old_hierarchy.Level_Name
                     ),
-                    ChurchLevel_Code=(
-                        hierarchy.ChurchLevel_Code
-                        if hierarchy.ChurchLevel_Code
-                        else old_hierarchy.ChurchLevel_Code
+                    Code=(
+                        hierarchy.Level_Code
+                        if hierarchy.Level_Code
+                        else old_hierarchy.Code
                     ),
                     Is_Active=(
                         hierarchy.Is_Active
@@ -261,16 +263,16 @@ class HierarchyService:
                         else old_hierarchy.Is_Active
                     ),
                     Modified_By=self.current_user.Usercode,
-                    Head_Code=self.current_user.HeadChurch_Code,
-                    OldChurchLevel_Code=code,
-                    Level_Code=code,
+                    Head_Code=self.current_user.Head_Code,
+                    OldCode=code,
+                    Hierarchy_Code=code,
                 ),
             )
             self.db.commit()
             h_code = (
-                hierarchy.ChurchLevel_Code
-                if hierarchy.ChurchLevel_Code
-                else old_hierarchy.ChurchLevel_Code
+                hierarchy.Level_Code
+                if hierarchy.Level_Code
+                else old_hierarchy.Hierarchy_Code
             )
             return await self.get_hierarchy_by_code(h_code)
         except Exception as err:

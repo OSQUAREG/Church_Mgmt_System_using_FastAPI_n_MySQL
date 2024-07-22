@@ -1,169 +1,259 @@
-# Church Management System (ChMS) Modules
+# ChurchMan - Church Management Solution (ChMS)
 
-## Module 1: Admin
+## Introduction
 
-### Head Church Admin
+The ChurchMan App is a Church Management Solution (ChMS) that helps Churches manage her hierarchy, members, branches, groups, events, assets, communications and finances (tithes, offerings, donations, seeds etc).
 
-#### Service methods
+## Modules, Sub-Modules and Endpoints
 
-- [X] Create Head Church
-- [X] Get All Head Church
-- [X] Activate Head Church by Code
-- [X] Deactivate Head Church by Code
-- [X] Delete Head Church by Code
+### Using OpenAPI tags and Route methods params as Modules, Sub-Modules and Endpoints inserted into the DB
 
-#### Route functions
+1. Define or add new tags keys in the `ChMS\api\swagger_doc.py` file as seen in the sample below.
 
-- [ ] Create New Head Church
-- [ ] Get All Head Churches
-- [ ] Activate Head Church by Code
-- [ ] Deactivate Head Church by Code
-- [ ] Delete Head Church by Code
+   ```
+   tags = {
+       # CHURCH ADMINISTRATION MODULE
+       "hierarchy": {
+           "module": "Church Administration (CHAD)",
+           "submodule": "Hierarchy Sub-Module (HIER)",
+           "description": "Operations on Church Hierarchies",
+       },
+       "head_church": {
+           "module": "Church Administration (CHAD)",
+           "submodule": "Head Church Sub-Module (HEAD)",
+           "description": "Operations on the Head Church",
+       }, ...
+   }
+   ```
+2. Use the tags dictionary as seen below:
 
-## Module 2: Hierarchy Management
+   ```
+   openapi_tags = [
+       # CHURCH ADMINISTRATION MODULE
+       # Hierarchy Sub Module
+       {
+           "name": f"{tags['hierarchy']['module']}: {tags['hierarchy']['submodule']}",
+           "description": f"{tags['hierarchy']['description']}",
+       },
+       # Head Church Sub Module
+       {
+           # "name": "Head Church Sub-Module Operations - Super Admin only",
+           "name": f"{tags['head_church']['module']}: {tags['head_church']['submodule']}: Super Admin only",
+           "description": f"{tags['head_church']['description']}: Super Admin only",
+       },
+       {
+           "name": f"{tags['head_church']['module']}: {tags['head_church']['submodule']}",
+           "description": f"{tags['head_church']['description']}",
+       }, ...
+   ]
+   ```
+3. Then pass the above openapi_tags list(dict) to the swagger param `openapi_tags` for the FastAPI class, as seen below:
 
-### Hierarchy
+   ```
+   swagger_params = dict(
+           title="ChurchMan App",
+           ...,
+           openapi_tags=openapi_tags,
+       )
+   ```
+4. Import the tags into the various .py files containing the routes and use them as seen below:
 
-#### Schema models
+   ```
+   from fastapi import APIRouter
+   from ...swagger_doc import tags
 
-* [X] **Hierarchy** – the basic hierarchy schema model used for creating hierarchy.
-* [X] **HierarchyResponse** – used in the validation and returning Hierarchy fetched from the DB.
+   hierarchy_router = APIRouter(
+       prefix="/admin/hierarchy",
+       tags=[f"{tags['hierarchy']['module']}: {tags['hierarchy']['submodule']}"],
+   )
 
-#### Service methods
+   church_router = APIRouter(
+       prefix=f"/church",
+       tags=[f"{tags['churches']['module']}: {tags['churches']['submodule']}"],
+   )
 
-**HierarchyService class**
+   church_adm_router = APIRouter(
+       prefix=f"/admin/church",
+       tags=[f"{tags['churches']['module']}: {tags['churches']['submodule']}: Admin only"],
+   )
+   ```
+5. Also define your route methods params as seen below.
+   Note: The `name` param will be used as the Endpoint name and also transformed into the endpoint code, while the `description` param will be used as description in the tblEndpoints table.
 
-- [X] **Get All Hierarchies** - returns all hierarchy related to user's head church with their status.
-- [X] **Get Hierarchy by Code** - returns an hierarcy level related to user's head church with its status.
-- [X] **Activate Hierarchy by Code** - returns activated hierarchy of user's head church.
-- [X] **Deactivate Hierarchy by Code** - returns deactivated hierarchy of user's head church.
+   ```
+   @hierarchy_router.get(
+       "/",
+       status_code=status.HTTP_200_OK,
+       name="Get Hierarchies",
+       summary="Get All Hierarchies",
+       description="## Retrieve All Hierarchies",
+       response_model=HierarchyResponse,
+   )
+   ```
+6. The functions `def get_all_endpoints(app: FastAPI)` and `def insert_mod_sub_endpts_table(app: FastAPI)` in `ChMS\api\common\database.py` helps extract the Module, Sub-Module and Endpoints names and codes and insert them into the tblModules, tblSubModules and tblEndpoints tables respectively.
+7. Each time there are modifications, on the API, this functions will truncate and re-insert into the tables.
 
-#### Route functions
+## Module 1: Authentication & Authorization
 
-- [X] **Get All Hierarchies** - gets all the hierarchies related to user's Head Church with their status
-- [X] **Get Hierarchy by Code** - gets only one hierarchy by provided code
-- [X] **Activate Hierarchy by Code** - activates a specified hierarchy in a user's Head Church
-- [X] **Deactivate Hierarchy by Code** - deactivates a specified hierarchy in a user's Head Church
-- [ ] Update Hierarchy by Code - updates the church level name or code.
+### DB Tables
 
-### Head Church
+| Generic Schema Tables | Head Schema Tables |
+| --------------------- | ------------------ |
+| tblEndpoints          | tblRoles           |
+| tblSubModules         | tblRoleAccess      |
+| tblModules            | tblUsers           |
+|                       | tblUserRole        |
 
-#### Schema models
+### Strategy
 
-* [X] HeadChurch
-* [X] HeadChurchResponse
-* [X] HeadChurchUpdate
+In tblUserRole, a Role [`Role_Code`] (FK from tblRoles) is assigned to a User [`Usercode`] (FK from tblUsers) for a Church Level [`Level_Code`] (FK from tblChurchLevels) and for a Church [`Church_Code`] (FK from tblChurches).
 
-#### Service methods
+In tblRoleAccess, a Role [`Role_Code`] (FK from tblRoles) is assigned Endpoints [Access_Code] (FK from tblEndpoints)
 
-* [X] Get Head Church by Code
-* [X] Update Head Church by Code
+In tblEndpoints, an Endpoint [`Code`] gives access and access type (create, read, update, delete and approve/reject) to the connected SubModule [`SubModule_Code`] (FK from tblSubmodules), which in tblModules is in turn connected to a Module [`Module_Code`] (FK from tblModules) to the User to which the Role is assigned.
 
-#### Route functions
+### Authentication Process/Steps
 
-* [X] Get Head Church by Code
-* [X] Update Head Church by Code
+1. **Initial Authentication**: The User logs in using Usercode and Password, and a token is created. This uses the endpoint `AUTHENTICATE_USER`
+2. **Re-Authentication**: The User selects a "Church Level" from a list of Church Levels mapped to his assigned Role(s).
+   The endpoint `RE_AUTHENTICATE_USER` uses the token created in the initial authentication and the selected Church Level to create a new token that is then used to access specific Endpoints, SubModules and Modules according to the assigned Role for that Church Level.
 
-### Province
+### Authorization Implementation
 
-#### Schema models
+At Re-Authentication, the `Level_Code` and `Church_Code` from tblUserRole for the `Level_Code` selected is stored in the new token and used to check if a user has access to certain Church Level or Church.
 
-* [X] Province
-* [X] ProvinceResponse
-* [X] ProvinceUpdate
+The Role (of the user at the selected level) determines where (submodule and module) and to what extent (endpoints) the user can perform at that church level and church selected.
 
-#### Service methods
+### Routes/Endpoints
 
-- [X] Create New Province
-- [ ] Get All Provinces
-- [ ] Get Province by Code
-- [ ] Update Province by Code
-- [ ] Activate Province by code
-- [ ] Deactivate Province by Code
+- [X] Authenticate User - AUTHENTICATE_USER
+- [X] Re-Authenticate User - RE_AUTHENTICATE_USER
+- [X] Read Current User - READ_CURRENT_USER
+- [X] Read Current User Access - READ_CURRENT_USER_ACCESS
+- [X] Read Current User Level - READ_CURRENT_USER_LEVEL
 
-#### Route functions
+## Module 2: Church Administration
 
-- [ ] Create New Province
-- [ ] Get All Provinces
-- [ ] Get Province by Code
-- [ ] Update Province by Code
-- [ ] Activate Province by code
-- [ ] Deactivate Province by Code
+This manages the Church Hierarchy, Head Church, Church Levels and Church Leads, Groups and Sub-Groups.
 
-### Zone
+### Hierarchy Sub-Module
 
-#### Schema models
+This is used for operations on all Church Level operations.
 
-* [ ] Zone
-* [ ] ZoneResponse
-* [ ] ZoneUpdate
+#### DB Tables
 
-#### Service methods
+| Generic Schema Tables | Head Schema Tables |
+| --------------------- | ------------------ |
+| tblHierarchy          | tblChurchLevels    |
 
-- [ ] Create New Zone
-- [ ] Get All Zones
-- [ ] Get Zone by Code
-- [ ] Update Zone by Code
-- [ ] Activate Zone by code
-- [ ] Deactivate Zone by Code
+#### Routes/Endpoints
 
-#### Route functions
+- [X] Get Hierarchies - GET_HIERARCHIES
+- [X] Get Hierarchy - GET_HIERARCHY
+- [X] Activate Hierarchy - ACTIVATE_HIERARCHY
+- [X] Deactivate Hierarchy - DEACTIVATE_HIERARCHY
+- [X] Update Hierarchy - UPDATE_HIERARCHY
 
-- [ ] Create New Zone
-- [ ] Get All Zones
-- [ ] Get Zone by Code
-- [ ] Update Zone by Code
-- [ ] Activate Zone by code
-- [ ] Deactivate Zone by Code
+### Head Church Sub-Module
 
-### Area
+#### DB Tables
 
-#### Schema models
+| Generic Schema Tables | Head Schema Tables |
+| --------------------- | ------------------ |
+| tblChurchHeads        | tblChurches        |
 
-* [ ] Area
-* [ ] AreaResponse
-* [ ] AreaUpdate
+#### Routes/Endpoints
 
-#### Service methods
+* [X] Create New Head Church - CREATE_NEW_HEAD_CHURCH
+* [X] Get Head Church - GET_HEAD_CHURCH
+* [X] Deactivate Head Church - DEACTIVATE_HEAD_CHURCH
+* [X] Activate Head Church - ACTIVATE_HEAD_CHURCH
+* [X] Update Head Church - UPDATE_HEAD_CHURCH
 
-- [ ] Create New Area
-- [ ] Get All Areas
-- [ ] Get Area by Code
-- [ ] Update Area by Code
-- [ ] Activate Area by code
-- [ ] Deactivate Area by Code
+### Churches Sub-Module
 
-#### Route functions
+#### DB Tables
 
-- [ ] Create New Area
-- [ ] Get All Areas
-- [ ] Get Area by Code
-- [ ] Update Area by Code
-- [ ] Activate Area by code
-- [ ] Deactivate Area by Code
+| Head Schema Tables |
+| ------------------ |
+| tblChurches        |
 
-### Branch
+#### Routes/Endpoints
 
-#### Schema models
+- [ ] Create New Church - CREATE_NEW_CHURCH
+- [ ] Get All Churches - GET_ALL_CHURCHES
+- [ ] Get Church - GET_CHURCH
+- [ ] Get Churches by Level - GET_CHURCHES_BY_LEVEL
+- [ ] Approve Church - APPROVE_CHURCH
+- [ ] Update Church - UPDATE_CHURCH
+- [ ] Activate Church - ACTIVATE_CHURCH
+- [ ] Deactivate Church - DEACTIVATE_CHURCH
 
-* [ ] Branch
-* [ ] BranchResponse
-* [ ] BranchUpdate
+### Church Leads Sub-Module
 
-#### Service methods
+#### DB Tables
 
-- [ ] Create New Branch
-- [ ] Get All Branches
-- [ ] Get Branch by Code
-- [ ] Update Branch by Code
-- [ ] Activate Branch by code
-- [ ] Deactivate Branch by Code
+| Head Schema Tables |
+| ------------------ |
+| tblChurchLeads     |
+| tblChurches        |
 
-#### Route functions
+#### Routes/Endpoints
 
-- [ ] Create New Branch
-- [ ] Get All Branches
-- [ ] Get Branch by Code
-- [ ] Update Branch by Code
-- [ ] Activate Branch by code
-- [ ] Deactivate Branch by Code
+- [ ] Map Church Lead - MAP_CHURCH_LEAD
+- [ ] Unmap Church Lead - UNMAP_CHURCH_LEAD
+- [ ] Approve Church Lead - APPROVE_CHURCH_LEAD
+- [ ] Get Church Lead - GET_CHURCH_LEAD
+- [ ] Get Church Lead Hierarchy - GET_CHURCH_LEAD_HIERARCHY
+- [ ] Get Branches by Church Lead - GET_BRANCHES_BY_CHURCH_LEAD
+- [ ] Get Churches by Lead - GET_CHURCHES_BY_LEAD
+
+## Module 3: Membership Management
+
+This manages Members, Member Branch, Member Groups, Church Positions, Member Positions, Member Groups etc.
+
+### Members Sub-Module
+
+#### DB Tables
+
+| Head Schema Tables |
+| ------------------ |
+| tblMembers         |
+| tblMemberBranch    |
+
+#### Routes/Endpoints
+
+* [ ] Create New Member - CREATE_NEW_MEMBER
+* [ ] Get All Members - GET_ALL_MEMBERS
+* [ ] Get Member - GET_MEMBER
+* [ ] Get Members by Church - GET_MEMBERS_BY_CHURCH
+* [ ] Get Current User Member - GET_CURRENT_USER_MEMBER
+* [ ] Activate Member - ACTIVATE_MEMBER
+* [ ] Deactivate Member - DEACTIVATE_MEMBER
+* [ ] Update Member - UPDATE_MEMBER
+* [ ] Update Current User Member - UPDATE_CURRENT_USER_MEMBER
+* [ ] Promote Member to Clergy - PROMOTE_MEMBER_TO_CLERGY
+* [ ] Demote Member from Clergy - DEMOTE_MEMBER_FROM_CLERGY
+
+### Member Branch Sub-Module
+
+#### DB Tables
+
+| Head Schema Tables |
+| ------------------ |
+| tblMemberBranch    |
+| tblMembers         |
+| tblChurches        |
+
+#### Routes/Endpoints
+
+* [ ] Join Member To Church - JOIN_MEMBER_TO_CHURCH
+* [ ] Exit Member From Church - EXIT_MEMBER_FROM_CHURCH
+* [ ] Exit Member From All Churches - EXIT_MEMBER_FROM_ALL_CHURCHES
+* [ ] Get Specific Member-Branch - GET_SPECIFIC_MEMBER_BRANCH
+* [ ] Get Member Current Branch - GET_MEMBER_CURRENT_BRANCH
+* [ ] Get All Member-Branches by Member - GET_ALL_MEMBER_BRANCHES_BY_MEMBER
+* [ ] Get Member Church Hierarchy - GET_MEMBER_CHURCH_HIERARCHY
+* [ ] Update Member-Branch Reason - UPDATE_MEMBER_BRANCH_REASON
+
+## Module 4: User Administration

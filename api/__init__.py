@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles  # type: ignore
 from fastapi.templating import Jinja2Templates  # type: ignore
 
 from .authentication.routes import auth_router
-from .hierarchy_mgmt.routes import (
+from .church_admin.routes import (
     hierarchy_router,
     head_chu_adm_router,
     head_chu_router,
@@ -19,10 +19,15 @@ from .membership_mgmt.routes import (
     member_branch_router,
     member_branch_adm_router,
 )
-from .user_mgmt.routes import user_route
+from .user_mgmt.routes import user_route, user_adm_route
 from .common.config import settings
 from .swagger_doc import get_swagger_params
-from .common.database import create_audit_log_triggers, get_db
+from .common.database import (
+    create_audit_log_triggers,
+    create_change_track_triggers,
+    get_all_endpoints,
+    insert_mod_sub_endpts_table,
+)
 
 # from save_openapi_json import save_openapi_spec
 # from fastapi.responses import HTMLResponse  # type: ignore
@@ -38,9 +43,6 @@ origins = [
 
 
 def create_app(prefix=settings.dev_prefix):
-    # Create DB Audit Logs Triggers
-    # create_audit_log_triggers()
-
     # Get Swagger Params
     swagger_params = get_swagger_params(prefix)
 
@@ -59,8 +61,8 @@ def create_app(prefix=settings.dev_prefix):
     # include routers to app
     app.include_router(auth_router, prefix=prefix)
     app.include_router(hierarchy_router, prefix=prefix)
-    app.include_router(head_chu_adm_router, prefix=prefix)
     app.include_router(head_chu_router, prefix=prefix)
+    app.include_router(head_chu_adm_router, prefix=prefix)
     app.include_router(church_router, prefix=prefix)
     app.include_router(church_adm_router, prefix=prefix)
     app.include_router(churchleads_router, prefix=prefix)
@@ -70,6 +72,14 @@ def create_app(prefix=settings.dev_prefix):
     app.include_router(member_branch_router, prefix=prefix)
     app.include_router(member_branch_adm_router, prefix=prefix)
     app.include_router(user_route, prefix=prefix)
+    app.include_router(user_adm_route, prefix=prefix)
+
+    # Perform DB Operations
+    """Create Triggers, Insert into Endpoints Table"""
+    # create_audit_log_triggers()
+    # create_change_track_triggers()
+    insert_mod_sub_endpts_table(app)
+    get_all_endpoints(app)
 
     # Templates
     import os

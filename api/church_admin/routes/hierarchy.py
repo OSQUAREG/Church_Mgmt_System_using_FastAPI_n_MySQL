@@ -2,19 +2,22 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, status, Depends, Path  # type: ignore
 
-from ...hierarchy_mgmt.models.hierarchy import HierarchyResponse, HierarchyUpdate
-from ...hierarchy_mgmt.services.hierarchy import (
+from ...church_admin.models.hierarchy import HierarchyResponse, HierarchyUpdate
+from ...church_admin.services.hierarchy import (
     HierarchyService,
     get_hierarchy_services,
 )
 
+from ...swagger_doc import tags
+
 hierarchy_router = APIRouter(
-    prefix="/admin/hierarchy", tags=["Hierarchy Sub-Module Operations"]
+    prefix="/admin/hierarchy",
+    tags=[f"{tags['hierarchy']['module']}: {tags['hierarchy']['submodule']}"],
 )
 
 """
 Hierarchy Routes
-- Get All Hierarchies
+- Get Hierarchies
 - Get Hierarchy by Code
 - Activate Hierarchy by Code
 - Deactivate Hierarchy by Code
@@ -26,7 +29,9 @@ Hierarchy Routes
 @hierarchy_router.get(
     "/",
     status_code=status.HTTP_200_OK,
-    name="Get All Hierarchies",
+    name="Get Hierarchies",
+    summary="Get All Hierarchies",
+    description="## Retrieve All Hierarchies",
     response_model=HierarchyResponse,
 )
 async def get_all_hierarchies(
@@ -38,7 +43,7 @@ async def get_all_hierarchies(
     response = dict(
         data=hierarchies,
         status_code=status.HTTP_200_OK,
-        message=f"Successsfully retrieved {len(hierarchies)} Hierarchies",
+        message=f"Successsfully retrieved {len(hierarchies)} Hierarchies.",
     )
     return response
 
@@ -47,7 +52,9 @@ async def get_all_hierarchies(
 @hierarchy_router.get(
     "/{code}",
     status_code=status.HTTP_200_OK,
-    name="Get Hierarchy by Code",
+    name="Get Hierarchy",
+    summary="Get Hierarchy by Code",
+    description="## Retrieve Hierarchy by Code",
     response_model=HierarchyResponse,
 )
 async def get_hierarchy_by_code(
@@ -61,7 +68,7 @@ async def get_hierarchy_by_code(
     response = dict(
         data=hierarchy,
         status_code=status.HTTP_200_OK,
-        message=f"Successsfully retrieved {hierarchy.Level_Code} Hierarchy: '{hierarchy.Church_Level} ({hierarchy.ChurchLevel_Code})'",
+        message=f"Successsfully retrieved {hierarchy.Level_Code} Hierarchy: '{hierarchy.Level_Name}'",
     )
     return response
 
@@ -70,7 +77,9 @@ async def get_hierarchy_by_code(
 @hierarchy_router.patch(
     "/{code}/activate",
     status_code=status.HTTP_200_OK,
-    name="Activate Hierarchy by Code",
+    name="Activate Hierarchy",
+    summary="Activate Hierarchy by Code",
+    description="## Activate Hierarchy by Code",
     response_model=HierarchyResponse,
 )
 async def activate_hierarchy_by_code(
@@ -85,7 +94,7 @@ async def activate_hierarchy_by_code(
     response = dict(
         data=activated_hierarchy,
         status_code=status.HTTP_200_OK,
-        message=f"Successsfully activated {activated_hierarchy.Level_Code} Hierarchy: '{activated_hierarchy.Church_Level} ({activated_hierarchy.ChurchLevel_Code})'",
+        message=f"Successsfully activated {activated_hierarchy.Level_Code} Hierarchy: '{activated_hierarchy.Level_Name}'",
     )
     return response
 
@@ -94,7 +103,9 @@ async def activate_hierarchy_by_code(
 @hierarchy_router.patch(
     "/{code}/deactivate",
     status_code=status.HTTP_200_OK,
-    name="Deactivate Hierarchy by Code",
+    name="Deactivate Hierarchy",
+    summary="Deactivate Hierarchy by Code",
+    description="## Deactivate Hierarchy by Code",
     response_model=HierarchyResponse,
 )
 async def deactivate_hierarchy_by_code(
@@ -108,7 +119,7 @@ async def deactivate_hierarchy_by_code(
     response = dict(
         data=deactivated_hierarchy,
         status_code=status.HTTP_200_OK,
-        message=f"Successsfully deactivated {deactivated_hierarchy.Level_Code} Hierarchy: '{deactivated_hierarchy.Church_Level} ({deactivated_hierarchy.ChurchLevel_Code})'",
+        message=f"Successsfully deactivated {deactivated_hierarchy.Level_Code} Hierarchy: '{deactivated_hierarchy.Level_Name}'",
     )
     return response
 
@@ -117,7 +128,9 @@ async def deactivate_hierarchy_by_code(
 @hierarchy_router.put(
     "/{code}/update",
     status_code=status.HTTP_200_OK,
-    name="Update Hierarchy by Code",
+    name="Update Hierarchy",
+    summary="Update Hierarchy by Code",
+    description="## Update Hierarchy by Code",
     response_model=HierarchyResponse,
 )
 async def update_hierarchy_by_code(
@@ -132,6 +145,6 @@ async def update_hierarchy_by_code(
     response = dict(
         data=updated_hierarchy,
         status_code=status.HTTP_200_OK,
-        message=f"Successsfully updated {updated_hierarchy.Level_Code} Hierarchy: '{updated_hierarchy.Church_Level} ({updated_hierarchy.ChurchLevel_Code})'",
+        message=f"Successsfully updated {updated_hierarchy.Level_Code} Hierarchy: '{updated_hierarchy.Level_Name}'",
     )
     return response

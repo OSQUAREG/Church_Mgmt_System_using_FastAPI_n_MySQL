@@ -61,7 +61,7 @@ This has the folowing Sub-Modules and endpoints:
 <br>
 
 ## 2. Members Management (_in progress_) 
-This manages Members, Church Positions, Member Positions.
+This manages Members, Member Branch, Member Groups, Church Positions, Member Positions etc.
 
 ### 2.1 Members Sub-Module
 {checkbox} Create New Member &nbsp;
@@ -107,81 +107,161 @@ This manages all communication channels and messages.
 <br>
 """
 
+tags = {
+    # AUTHENTICATION MODULE
+    "auth": {
+        "module": "Authentication (AUTH)",
+        "submodule": "Authentication Sub-Module (AUTH)",
+        "description": "Operations on User Authentications",
+    },
+    # CHURCH ADMINISTRATION MODULE
+    "hierarchy": {
+        "module": "Church Administration (CHAD)",
+        "submodule": "Hierarchy Sub-Module (HIER)",
+        "description": "Operations on Church Hierarchies",
+    },
+    "head_church": {
+        "module": "Church Administration (CHAD)",
+        "submodule": "Head Church Sub-Module (HEAD)",
+        "description": "Operations on the Head Church",
+    },
+    "churches": {
+        "module": "Church Administration (CHAD)",
+        "submodule": "Churches Sub-Module (CHUR)",
+        "description": "Operations on Churches",
+    },
+    "church_leads": {
+        "module": "Church Administration (CHAD)",
+        "submodule": "Church Leads Sub-Module (LEAD)",
+        "description": "Operations on Church Leads",
+    },
+    # GROUPS MANAGEMENT MODULE
+    "groups": {
+        "module": "Groups Management (GRPM)",
+        "submodule": "Groups Sub-Module (GRUP)",
+        "description": "Operations on Groups",
+    },
+    "subgroups": {
+        "module": "Groups Management (GRPM)",
+        "submodule": "Sub Groups Sub-Module (SUBG)",
+        "description": "Operations on Sub Groups",
+    },
+    # MEMBERSHIP MANAGEMENT MODULE
+    "members": {
+        "module": "Membership Management (MBSM)",
+        "submodule": "Members Sub-Module (MBRS)",
+        "description": "Operations on Members",
+    },
+    "member_branch": {
+        "module": "Membership Management (MBSM)",
+        "submodule": "Member Branch Sub-Module (MBRN)",
+        "description": "Operations on Member's Branch",
+    },
+    "member_groups": {
+        "module": "Membership Management (MBSM)",
+        "submodule": "Member Groups Sub-Module (MGRP)",
+        "description": "Operations on Member's Groups",
+    },
+    "member_position": {
+        "module": "Membership Management (MBSM)",
+        "submodule": "Member Positions Sub-Module (MBPO)",
+        "description": "Operations on Member's Position",
+    },
+    # USER MANAGEMENT MODULE
+    "users": {
+        "module": "User Management (USRM)",
+        "submodule": "Users Sub-Module (USAD)",
+        "description": "Operations on Users",
+    },
+}
+
 openapi_tags = [
     # Authentication Module
     {
-        "name": "Authentication Operations",
-        "description": "Operations on User Authentications",
+        "name": f"{tags['auth']['module']}: {tags['auth']['submodule']}",
+        "description": f"{tags['auth']['description']}",
     },
-    # CHURCH ADMINSTRATION MODULE
-    # Hierarchy Module Sub Module
+    # CHURCH ADMINISTRATION MODULE
+    # Hierarchy Sub Module
     {
-        "name": "Hierarchy Sub-Module Operations",
-        "description": "Operations on the Church Sub-Module Hirarchy",
+        "name": f"{tags['hierarchy']['module']}: {tags['hierarchy']['submodule']}",
+        "description": f"{tags['hierarchy']['description']}",
     },
     # Head Church Sub Module
     {
-        "name": "Head Church Sub-Module Operations - Super Admin only",
-        "description": "Operations on the Head Church Sub-Module by Super Admin",
+        # "name": "Head Church Sub-Module Operations - Super Admin only",
+        "name": f"{tags['head_church']['module']}: {tags['head_church']['submodule']}: Super Admin only",
+        "description": f"{tags['head_church']['description']}: Super Admin only",
     },
     {
-        "name": "Head Church Sub-Module Operations",
-        "description": "Operations on the Head Church",
+        "name": f"{tags['head_church']['module']}: {tags['head_church']['submodule']}",
+        "description": f"{tags['head_church']['description']}",
     },
     # Churches Sub Module
     {
-        "name": "Churches Sub-Module Operations - Admin only",
-        "description": "Operations on the Churches Sub-Module by Admin",
+        "name": f"{tags['churches']['module']}: {tags['churches']['submodule']}: Admin only",
+        "description": f"{tags['churches']['description']}: Admins only",
     },
     {
-        "name": "Churches Sub-Module Operations",
-        "description": "Operations on the Churches Sub-Module",
+        "name": f"{tags['churches']['module']}: {tags['churches']['submodule']}",
+        "description": f"{tags['churches']['description']}",
     },
     # Church Leads Sub Module
     {
-        "name": "Church Leads Sub-Module Operations - Admin only",
-        "description": "Operations on the Church Leads Sub-Module by Admin",
+        "name": f"{tags['church_leads']['module']}: {tags['church_leads']['submodule']}: Admin only",
+        "description": f"{tags['church_leads']['description']}: Admins only",
     },
     {
-        "name": "Church Leads Sub-Module Operations",
-        "description": "Operations on the Church Leads Sub-Module",
+        "name": f"{tags['church_leads']['module']}: {tags['church_leads']['submodule']}",
+        "description": f"{tags['church_leads']['description']}",
     },
+    # GROUP MANAGEMENT MODULE
     # Group Sub Module
     {
-        "name": "Groups Sub-Module Operations - Admin only",
-        "description": "Operations on the Groups Sub-Module by Admin",
+        "name": f"{tags['groups']['module']}: {tags['groups']['submodule']}: Admin only",
+        "description": f"{tags['groups']['description']}: Admins only",
     },
     {
-        "name": "Groups Sub-Module Operations",
-        "description": "Operations on the Groups Sub-Module",
+        "name": f"{tags['groups']['module']}: {tags['groups']['submodule']}",
+        "description": f"{tags['groups']['description']}",
     },
     # Sub Group Sub Module
     {
-        "name": "Sub Groups Sub-Module Operations - Admin only",
-        "description": "Operations on the Sub Groups by Admin",
+        "name": f"{tags['subgroups']['module']}: {tags['subgroups']['submodule']}: Admin only",
+        "description": f"{tags['subgroups']['description']}: Admins only",
     },
     {
-        "name": "Sub Groups Sub-Module Operations",
-        "description": "Operations on the Sub Groups Sub-Module",
+        "name": f"{tags['subgroups']['module']}: {tags['subgroups']['submodule']}",
+        "description": f"{tags['subgroups']['description']}",
     },
     ## MEMBERSHIP MANAGEMENT MODULE
     # Members Sub Module
     {
-        "name": "Members Sub-Module Operations - Admin only",
-        "description": "Operations on the Sub Groups by Admin",
+        "name": f"{tags['members']['module']}: {tags['members']['submodule']}: Admin only",
+        "description": f"{tags['members']['description']}: Admins only",
     },
     {
-        "name": "Members Sub-Module Operations",
-        "description": "Operations on the Sub Groups Sub-Module",
+        "name": f"{tags['members']['module']}: {tags['members']['submodule']}",
+        "description": f"{tags['members']['description']}",
     },
     # Member-Branch Sub Module
     {
-        "name": "Member-Branch Sub-Module Operations - Admin only",
-        "description": "Operations on the Member's Branch by Admin",
+        "name": f"{tags['member_branch']['module']}: {tags['member_branch']['submodule']}: Admin only",
+        "description": f"{tags['member_branch']['description']}: Admins only",
     },
     {
-        "name": "Member-Branch Sub-Module Operations",
-        "description": "Operations on the Member's Branch Sub-Module",
+        "name": f"{tags['member_branch']['module']}: {tags['member_branch']['submodule']}",
+        "description": f"{tags['member_branch']['description']}",
+    },
+    ## USER MANAGEMENT MODULE
+    # User Management Sub Module
+    {
+        "name": f"{tags['users']['module']}: {tags['users']['submodule']}: Admin only",
+        "description": f"{tags['users']['description']}: Admins only",
+    },
+    {
+        "name": f"{tags['users']['module']}: {tags['users']['submodule']}",
+        "description": f"{tags['users']['description']}",
     },
 ]
 
@@ -204,19 +284,23 @@ def get_swagger_params(prefix):
         },
         servers=[
             {
-                "url": "https://development.churchman.com/v1",
+                "url": "http://127.0.0.1:8000",
+                "description": "Local server",
+            },
+            {
+                "url": "https://development.churchman.com",
                 "description": "Development server",
             },
             {
-                "url": "https://test.churchman.com/v1",
+                "url": "https://test.churchman.com",
                 "description": "Test server",
             },
             {
-                "url": "https://staging.churchman.com/v1",
+                "url": "https://staging.churchman.com",
                 "description": "Staging server",
             },
             {
-                "url": "https://api.churchman.com/v1",
+                "url": "https://api.churchman.com",
                 "description": "Production server",
             },
         ],

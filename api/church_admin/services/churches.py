@@ -6,7 +6,7 @@ from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
 from ...authentication.models.auth import User, UserAccess
-from ...hierarchy_mgmt.models.church import ChurchBase, ChurchUpdate
+from ...church_admin.models.churches import ChurchBase, ChurchUpdate
 from ...common.database import get_db
 from ...common.utils import (
     check_duplicate_entry,
@@ -47,11 +47,11 @@ class ChurchServices:
     async def create_new_church(self, level_code: str, church: ChurchBase):
         try:
             # check and get church level no
-            level_no = get_level(level_code, self.current_user.HeadChurch_Code, self.db)
+            level_no = get_level(level_code, self.current_user.Head_Code, self.db)
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 # level_code=["CHU"],
                 level_no=level_no.Level_No - 1,
@@ -63,14 +63,15 @@ class ChurchServices:
             check_if_new_code_name_exist(
                 new_code_name=church.Name,
                 table_name="tblChurches",
+                schema_name="generic",
                 db=self.db,
                 action="create",
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
             )
             # cheeck duplicate entry
             check_duplicate_entry(
                 self.db,
-                self.current_user.HeadChurch_Code,
+                self.current_user.Head_Code,
                 "tblChurches",
                 "Contact_No",
                 church.Contact_No,
@@ -79,7 +80,7 @@ class ChurchServices:
             )
             check_duplicate_entry(
                 self.db,
-                self.current_user.HeadChurch_Code,
+                self.current_user.Head_Code,
                 "tblChurches",
                 "Contact_Email",
                 church.Contact_Email,
@@ -91,9 +92,9 @@ class ChurchServices:
                 text(
                     """
                     INSERT INTO tblChurches
-                        (Name, Alt_Name, Address, Founding_Date, About, Mission, Vision, Motto, Contact_No, Contact_No2, Contact_Email, Contact_Email2, Town_Code, State_Code, Region_Code, Country_Code, Level_Code, HeadChurch_Code, Created_By)
+                        (Name, Alt_Name, Address, Founding_Date, About, Mission, Vision, Motto, Contact_No, Contact_No2, Contact_Email, Contact_Email2, Town_Code, State_Code, Region_Code, Country_Code, Level_Code, Head_Code, Created_By)
                     VALUES
-                        (:Name, :Alt_Name, :Address, :Founding_Date, :About, :Mission, :Vision, :Motto, :Contact_No, :Contact_No2, :Contact_Email, :Contact_Email2, :Town_Code, :State_Code, :Region_Code, :Country_Code, :Level_Code, :HeadChurch_Code, :Created_By);
+                        (:Name, :Alt_Name, :Address, :Founding_Date, :About, :Mission, :Vision, :Motto, :Contact_No, :Contact_No2, :Contact_Email, :Contact_Email2, :Town_Code, :State_Code, :Region_Code, :Country_Code, :Level_Code, :Head_Code, :Created_By);
                     """
                 ),
                 dict(
@@ -115,7 +116,7 @@ class ChurchServices:
                     Country_Code=church.Country_Code,
                     Is_Active=1,
                     Level_Code=level_code.upper(),
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Created_By=self.current_user.Usercode,
                 ),
             )
@@ -145,12 +146,12 @@ class ChurchServices:
                 )
             # get church level no
             level_no = get_level(
-                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+                church.Level_Code, self.current_user.Head_Code, self.db
             )
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 level_no=level_no.Level_No - 1,
                 module_code=["ALLM", "HRCH"],
@@ -187,7 +188,7 @@ class ChurchServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 module_code=["ALLM", "HRCH"],
                 access_type=["VW"],
             )
@@ -197,23 +198,23 @@ class ChurchServices:
                     text(
                         """
                         SELECT * FROM tblChurches 
-                        WHERE HeadChurch_Code = :HeadChurch_Code 
+                        WHERE Head_Code = :Head_Code 
                         ORDER BY Code, Level_Code;
                         """
                     ),
-                    dict(HeadChurch_Code=self.current_user.HeadChurch_Code),
+                    dict(Head_Code=self.current_user.Head_Code),
                 ).all()
                 if status_code is None
                 else self.db.execute(
                     text(
                         """
                         SELECT * FROM tblChurches 
-                        WHERE HeadChurch_Code = :HeadChurch_Code AND Status = :Status 
+                        WHERE Head_Code = :Head_Code AND Status = :Status 
                         ORDER BY Code;
                         """
                     ),
                     dict(
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Head_Code=self.current_user.Head_Code,
                         Status=status_code,
                     ),
                 ).all()
@@ -230,7 +231,7 @@ class ChurchServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 module_code=["ALLM", "HRCH"],
                 access_type=["VW"],
             )
@@ -238,10 +239,10 @@ class ChurchServices:
             churches = (
                 self.db.execute(
                     text(
-                        "SELECT * FROM tblChurches WHERE HeadChurch_Code = :HeadChurch_Code AND Level_Code = :Level_Code ORDER BY Code;"
+                        "SELECT * FROM tblChurches WHERE Head_Code = :Head_Code AND Level_Code = :Level_Code ORDER BY Code;"
                     ),
                     dict(
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Head_Code=self.current_user.Head_Code,
                         Level_Code=level_code,
                     ),
                 ).all()
@@ -250,12 +251,12 @@ class ChurchServices:
                     text(
                         """
                         SELECT * FROM tblChurches 
-                        WHERE HeadChurch_Code = :HeadChurch_Code AND Level_Code = :Level_Code 
+                        WHERE Head_Code = :Head_Code AND Level_Code = :Level_Code 
                             AND Status = :Status ORDER BY Code;
                         """
                     ),
                     dict(
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Head_Code=self.current_user.Head_Code,
                         Level_Code=level_code,
                         Status=status_code,
                     ),
@@ -271,17 +272,17 @@ class ChurchServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 module_code=["ALLM", "HRCH"],
                 access_type=["VW", "ED", "AR"],
             )
             # fetch church
             church = self.db.execute(
                 text(
-                    "SELECT * FROM tblChurches WHERE HeadChurch_Code = :HeadChurch_Code AND (Code = :Code or Id = :Id);"
+                    "SELECT * FROM tblChurches WHERE Head_Code = :Head_Code AND (Code = :Code or Id = :Id);"
                 ),
                 dict(
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Code=id_code,
                     Id=id_code,
                 ),
@@ -290,7 +291,7 @@ class ChurchServices:
             if church is None:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Church with code: '{id_code.upper()}' not found in Head Church: {self.current_user.HeadChurch_Code}",
+                    detail=f"Church with code: '{id_code.upper()}' not found in Head Church: {self.current_user.Head_Code}",
                 )
             return church
         except Exception as err:
@@ -309,12 +310,12 @@ class ChurchServices:
                 )
             # get church level no
             level_no = get_level(
-                old_church.Level_Code, self.current_user.HeadChurch_Code, self.db
+                old_church.Level_Code, self.current_user.Head_Code, self.db
             )
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 church_code=old_church.Code,
                 level_no=level_no.Level_No,
@@ -325,7 +326,7 @@ class ChurchServices:
             if church.Name is not None and church.Name != old_church.Name:
                 check_if_new_code_name_exist(
                     church.Name,
-                    self.current_user.HeadChurch_Code,
+                    self.current_user.Head_Code,
                     "tblChurches",
                     self.db,
                     "update",
@@ -334,7 +335,7 @@ class ChurchServices:
             # cheeck duplicate entry
             check_duplicate_entry(
                 self.db,
-                self.current_user.HeadChurch_Code,
+                self.current_user.Head_Code,
                 "tblChurches",
                 "Contact_No",
                 church.Contact_No,
@@ -343,7 +344,7 @@ class ChurchServices:
             )
             check_duplicate_entry(
                 self.db,
-                self.current_user.HeadChurch_Code,
+                self.current_user.Head_Code,
                 "tblChurches",
                 "Contact_Email",
                 church.Contact_Email,
@@ -356,7 +357,7 @@ class ChurchServices:
                     """
                     UPDATE tblChurches
                     SET
-                        Name = :Name, Alt_Name = :Alt_Name, Address = :Address, Founding_Date = :Founding_Date, About = :About, Mission = :Mission, Vision = :Vision, Motto = :Motto, Contact_No = :Contact_No, Contact_No2 = :Contact_No2, Contact_Email = :Contact_Email, Contact_Email2 = :Contact_Email2, Town_Code = :Town_Code, State_Code = :State_Code, Region_Code = :Region_Code, Country_Code = :Country_Code, HeadChurch_Code = :HeadChurch_Code,Modified_By = :Modified_By
+                        Name = :Name, Alt_Name = :Alt_Name, Address = :Address, Founding_Date = :Founding_Date, About = :About, Mission = :Mission, Vision = :Vision, Motto = :Motto, Contact_No = :Contact_No, Contact_No2 = :Contact_No2, Contact_Email = :Contact_Email, Contact_Email2 = :Contact_Email2, Town_Code = :Town_Code, State_Code = :State_Code, Region_Code = :Region_Code, Country_Code = :Country_Code, Head_Code = :Head_Code,Modified_By = :Modified_By
                     WHERE
                         Code = :Code;
                     """
@@ -414,7 +415,7 @@ class ChurchServices:
                         if church.Country_Code
                         else old_church.Country_Code
                     ),
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Modified_By=self.current_user.Usercode,
                     Code=code,
                 ),
@@ -437,12 +438,12 @@ class ChurchServices:
                 )
             # get church level no
             level_no = get_level(
-                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+                church.Level_Code, self.current_user.Head_Code, self.db
             )
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 level_no=level_no.Level_No - 1,
                 module_code=["ALLM", "HRCH"],
@@ -480,12 +481,12 @@ class ChurchServices:
                 )
             # get church level no
             level_no = get_level(
-                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+                church.Level_Code, self.current_user.Head_Code, self.db
             )
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 level_no=level_no.Level_No - 1,
                 module_code=["ALLM", "HRCH"],
@@ -529,6 +530,21 @@ class ChurchServices:
             return await self.get_church_by_id_code(code)
         except Exception as err:
             self.db.rollback()
+            raise err
+
+    @staticmethod
+    async def test_query(db: Session):
+        try:
+            db.execute(
+                text(
+                    """
+                    SELECT 'Good' AS `Check`, H.Level_No, UR.Level_Code  FROM ChMS_generic.tblHierarchy H
+                    LEFT JOIN ChMS_testdb.tblUserRole UR  ON UR.Level_Code = H.Code
+                    """
+                )
+            )
+        except Exception as err:
+            db.rollback()
             raise err
 
 

@@ -1,16 +1,18 @@
 from datetime import datetime
-from typing import Annotated, Optional
+from typing import Annotated
 
-from fastapi import HTTPException, status, Depends  # type: ignore
+from fastapi import HTTPException, status, Depends, Request  # type: ignore
 from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
 from ...authentication.models.auth import User, UserAccess
-from ...hierarchy_mgmt.models.head_church import HeadChurchCreate, HeadChurchUpdateIn
+from ..models.church_heads import HeadChurchCreate, HeadChurchUpdateIn
+from ...common.config import settings
 from ...common.database import get_db
 from ...common.dependencies import (
     get_current_user,
     get_current_user_access,
+    get_route_code,
     set_db_current_user,
 )
 from ...common.utils import (
@@ -18,10 +20,13 @@ from ...common.utils import (
     set_user_access,
 )
 
+db_schema_headchu = settings.db_schema_headchu
+db_schema_generic = settings.db_schema_generic
+
 
 class HeadChurchServices:
     """
-    Head Church Services
+    ## Head Church Services
     - Create Head Church
     - Get Head Church by Code
     - Update Head Church by Code
@@ -34,26 +39,29 @@ class HeadChurchServices:
         db: Session,
         current_user: User,
         current_user_access: UserAccess,
+        request: Request,
     ):
         self.db = db
         self.current_user = current_user
         self.current_user_access = current_user_access
+        self.request = request
+        self.route_code = get_route_code(self.request)
 
     @staticmethod
     async def create_head_church(db: Session, head_church: HeadChurchCreate):
         try:
             # check if new Code or Name already exists
             check_if_new_code_name_exist(
-                head_church.Code, "tblCLHeadChurch", db, "create"
+                head_church.Code, "tblChurchHeads", db_schema_generic, db, "create"
             )
             check_if_new_code_name_exist(
-                head_church.Name, "tblCLHeadChurch", db, "create"
+                head_church.Name, "tblChurchHeads", db_schema_generic, db, "create"
             )
             # insert new head church
             db.execute(
                 text(
-                    """
-                    INSERT INTO tblCLHeadChurch
+                    f"""
+                    INSERT INTO {db_schema_generic}.tblChurchHeads
                         (Code, Name, Alt_Name, Address, Founding_Date, About, Mission, Vision, Motto, Contact_No, Contact_No2, Contact_Email, Contact_Email2, Town_Code, State_Code, Region_Code, Country_Code, Created_By)
                     VALUES
                         (:Code, :Name, :Alt_Name, :Address, :Founding_Date, :About, :Mission, :Vision, :Motto, :Contact_No, :Contact_No2, :Contact_Email, :Contact_Email2, :Town_Code, :State_Code, :Region_Code, :Country_Code, :Created_By);
@@ -82,7 +90,9 @@ class HeadChurchServices:
             )
             db.commit()
             new_head_church = db.execute(
-                text("SELECT * FROM tblCLHeadChurch WHERE Id = LAST_INSERT_ID();")
+                text(
+                    f"SELECT * FROM {db_schema_generic}.tblChurchHeads WHERE Id = LAST_INSERT_ID();"
+                )
             ).first()
             return new_head_church
         except Exception as err:
@@ -91,19 +101,23 @@ class HeadChurchServices:
 
     async def get_head_church_by_code(self, code: str):
         try:
+            # print(await self.route_code)
+
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["ALLM", "HRCH"],
+                module_code=["ALLM", "HCHM"],
                 submodule_code=["ALLS", "HEAD"],
-                access_type=["VW", "ED"],
+                access_type=["RD", "UP"],
             )
             # fetch data from self.db
             head_church = self.db.execute(
-                text("SELECT * FROM tblCLHeadChurch WHERE Code = :Code;"),
+                text(
+                    f"SELECT * FROM {db_schema_generic}.tblChurchHeads WHERE Code = :Code;"
+                ),
                 dict(Code=code),
             ).first()
             # check if data exists
@@ -124,12 +138,12 @@ class HeadChurchServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 level_code=["CHU"],
-                module_code=["ALLM", "HRCH"],
+                module_code=["ALLM", "HCHM"],
                 submodule_code=["ALLS", "HEAD"],
-                access_type=["ED"],
+                access_type=["UP"],
             )
             # check if code exists
             old_head_church = await self.get_head_church_by_code(code)
@@ -137,25 +151,33 @@ class HeadChurchServices:
             if old_head_church.Is_Active == 0:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Head Church: '{old_head_church.Name} ({old_head_church.Code})' is not activated. Please send an email to 'osquaregtech@gmail.com' to activate the Head Church.",
+                    detail=f"Head Church: '{old_head_church.Name} ({old_head_church.Code})' is not activated. Please send an email to 'osquaregtech@gmail.com' to activate your Head Church.",
                 )
             # check if new Code or Name already exists
             if head_church.Code:
                 check_if_new_code_name_exist(
-                    head_church.Code, "tblCLHeadChurch", self.db, "update", old_head_church.Code
+                    head_church.Code,
+                    "tblChurchHeads",
+                    self.db,
+                    "update",
+                    old_head_church.Code,
                 )
             if head_church.Name:
                 check_if_new_code_name_exist(
-                    head_church.Name, "tblCLHeadChurch", self.db, "update", old_head_church.Name
+                    head_church.Name,
+                    "tblChurchHeads",
+                    self.db,
+                    "update",
+                    old_head_church.Name,
                 )
 
             # update the data
             self.db.execute(
                 text(
-                    """
-                    UPDATE tblCLHeadChurch
+                    f"""
+                    UPDATE {db_schema_generic}.tblChurchHeads
                     SET
-                        Code = :Code, Name = :Name, Alt_Name = :Alt_Name, Address = :Address, Founding_Date = :Founding_Date, About = :About, Mission = :Mission, Vision = :Vision, Motto = :Motto, Contact_No = :Contact_No, Contact_No2 = :Contact_No2, Contact_Email = :Contact_Email, Contact_Email2 = :Contact_Email2, Town_Code = :Town_Code, State_Code = :State_Code, Region_Code = :Region_Code, Country_Code = :Country_Code, Modified_By = :Modified_By                        
+                        Code = :Code, Name = :Name, Alt_Name = :Alt_Name, Address = :Address, Founding_Date = :Founding_Date, About = :About, Mission = :Mission, Vision = :Vision, Motto = :Motto, Contact_No = :Contact_No, Contact_No2 = :Contact_No2, Contact_Email = :Contact_Email, Contact_Email2 = :Contact_Email2, Town_Code = :Town_Code, State_Code = :State_Code, Region_Code = :Region_Code, Country_Code = :Country_Code, Modified_By = :Modified_By
                     WHERE Code = :Code2;
                     """
                 ),
@@ -259,20 +281,20 @@ class HeadChurchServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code="ALL",
+                head_code="ALL",
                 role_code=["SAD"],
                 level_code=["CHU"],
-                module_code=["ALLM", "HRCH"],
+                module_code=["ALLM", "HCHM"],
                 submodule_code=["ALLS", "HEAD"],
-                access_type=["ED"],
+                access_type=["UP"],
             )
             # check if it exists
             await self.get_head_church_by_code(code)
             # update head church data
             self.db.execute(
                 text(
-                    """
-                    UPDATE tblCLHeadChurch 
+                    f"""
+                    UPDATE {db_schema_generic}.tblChurchHeads 
                     SET Is_Active = :Is_Active, Modified_By = :Modified_By 
                     WHERE Code = :Code;
                     """
@@ -313,20 +335,20 @@ class HeadChurchServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code="ALL",
+                head_code="ALL",
                 role_code=["SAD"],
                 level_code=["CHU"],
-                module_code=["ALLM", "HRCH"],
+                module_code=["ALLM", "HCHM"],
                 submodule_code=["ALLS", "HEAD"],
-                access_type=["ED"],
+                access_type=["UP"],
             )
             # check if it exists
             await self.get_head_church_by_code(code)
             # update head church data
             self.db.execute(
                 text(
-                    """
-                    UPDATE tblCLHeadChurch 
+                    f"""
+                    UPDATE {db_schema_generic}.tblChurchHeads 
                     SET Is_Active = :Is_Active, Modified_By = :Modified_By 
                     WHERE Code = :Code;
                     """
@@ -341,8 +363,8 @@ class HeadChurchServices:
             # update it in tblChurches
             self.db.execute(
                 text(
-                    """
-                    UPDATE tblChurches 
+                    f"""
+                    UPDATE {db_schema_generic}.tblChurches 
                     SET Is_Active = :Is_Active, Modified_By = :Modified_By, Status = :Status, Status_By = :Status_By, Status_Date = :Status_Date 
                     WHERE Code = :Code;
                     """
@@ -368,5 +390,6 @@ def get_head_church_services(
     current_user: Annotated[User, Depends(get_current_user)],
     current_user_access: Annotated[User, Depends(get_current_user_access)],
     db_current_user: Annotated[str, Depends(set_db_current_user)],
+    request: Request,
 ):
-    return HeadChurchServices(db, current_user, current_user_access)
+    return HeadChurchServices(db, current_user, current_user_access, request)

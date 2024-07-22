@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, Union
 
 from pydantic import BaseModel, validator, Field  # type: ignore
-from .head_church import HeadChurchBase, HeadChurchUpdate
+from .church_heads import HeadChurchBase, HeadChurchUpdate
 
 
 class ChurchCode(BaseModel):

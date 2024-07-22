@@ -6,8 +6,8 @@ from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
 from ...authentication.models.auth import User, UserAccess
-from ...hierarchy_mgmt.services.church_leads import church_recursive_cte
-from ...hierarchy_mgmt.services import get_church_services, ChurchServices
+from ...church_admin.services.church_leads import church_recursive_cte
+from ...church_admin.services import get_church_services, ChurchServices
 from ...membership_mgmt.models.members import (
     MemberBranchExitIn,
     MemberBranchJoinIn,
@@ -43,6 +43,13 @@ class MemberServices:
     - Activate Member by Code
     - Deactivate Member by Code
 
+    - Get Member Current Branch
+    - Get Member-Branch by Code
+    - Get Member All Branches
+    - Get Member Church Hierarchy by Member Code
+    - Exit Member From All Churches
+    - Exit Memeber From Church
+    - Join Member To Church
     """
 
     def __init__(
@@ -71,12 +78,12 @@ class MemberServices:
                 )
             # get level
             level = get_level(
-                new_member.Branch_Code, self.current_user.HeadChurch_Code, self.db
+                new_member.Branch_Code, self.current_user.Head_Code, self.db
             )
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 church_code=new_member.Branch_Code,
                 level_no=level.Level_No - 1,
                 role_code=["ADM", "SAD"],
@@ -93,14 +100,14 @@ class MemberServices:
             # check duplicate entry
             check_duplicate_entry(
                 self.db,
-                self.current_user.HeadChurch_Code,
+                self.current_user.Head_Code,
                 "tblMember",
                 "Personal_Contact_No",
                 new_member.Personal_Contact_No,
             )
             check_duplicate_entry(
                 self.db,
-                self.current_user.HeadChurch_Code,
+                self.current_user.Head_Code,
                 "tblMember",
                 "Personal_Email",
                 new_member.Personal_Email,
@@ -110,9 +117,9 @@ class MemberServices:
                 text(
                     """
                     INSERT INTO tblMember
-                        (First_Name, Middle_Name, Last_Name, Title, Title2, Family_Name, Is_FamilyHead, Home_Address, Date_of_Birth, Gender, Marital_Status, Employ_Status, Occupation, Office_Address, State_of_Origin, Country_of_Origin, Personal_Contact_No, Contact_No, Contact_No2, Personal_Email, Contact_Email, Contact_Email2, Town_Code, State_Code, Region_Code, Country_Code, `Type`, Is_Clergy, HeadChurch_Code, Created_By)
+                        (First_Name, Middle_Name, Last_Name, Title, Title2, Family_Name, Is_FamilyHead, Home_Address, Date_of_Birth, Gender, Marital_Status, Employ_Status, Occupation, Office_Address, State_of_Origin, Country_of_Origin, Personal_Contact_No, Contact_No, Contact_No2, Personal_Email, Contact_Email, Contact_Email2, Town_Code, State_Code, Region_Code, Country_Code, `Type`, Is_Clergy, Head_Code, Created_By)
                     VALUES
-                        (:First_Name, :Middle_Name, :Last_Name, :Title, :Title2, :Family_Name, :Is_FamilyHead, :Home_Address, :Date_of_Birth, :Gender, :Marital_Status, :Employ_Status, :Occupation, :Office_Address, :State_of_Origin, :Country_of_Origin, :Personal_Contact_No, :Contact_No, :Contact_No2, :Personal_Email, :Contact_Email, :Contact_Email2, :Town_Code, :State_Code, :Region_Code, :Country_Code, :Type, :Is_Clergy, :HeadChurch_Code, :Created_By);
+                        (:First_Name, :Middle_Name, :Last_Name, :Title, :Title2, :Family_Name, :Is_FamilyHead, :Home_Address, :Date_of_Birth, :Gender, :Marital_Status, :Employ_Status, :Occupation, :Office_Address, :State_of_Origin, :Country_of_Origin, :Personal_Contact_No, :Contact_No, :Contact_No2, :Personal_Email, :Contact_Email, :Contact_Email2, :Town_Code, :State_Code, :Region_Code, :Country_Code, :Type, :Is_Clergy, :Head_Code, :Created_By);
                     """
                 ),
                 dict(
@@ -144,7 +151,7 @@ class MemberServices:
                     Country_Code=new_member.Country_Code,
                     Type=new_member.Type,
                     Is_Clergy=new_member.Is_Clergy,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Created_By=self.current_user.Usercode,
                 ),
             )
@@ -159,9 +166,9 @@ class MemberServices:
                 text(
                     """
                 INSERT INTO tblMemberBranch
-                    (Member_Code, Branch_Code, Join_Date, Join_Code, Join_Note, HeadChurch_Code, Created_By)
+                    (Member_Code, Branch_Code, Join_Date, Join_Code, Join_Note, Head_Code, Created_By)
                 VALUES
-                    (:Member_Code, :Branch_Code, :Join_Date, :Join_Code, :Join_Note, :HeadChurch_Code, :Created_By);
+                    (:Member_Code, :Branch_Code, :Join_Date, :Join_Code, :Join_Note, :Head_Code, :Created_By);
                 """
                 ),
                 dict(
@@ -170,7 +177,7 @@ class MemberServices:
                     Join_Date=new_member.Join_Date,
                     Join_Code=new_member.Join_Code,
                     Join_Note=new_member.Join_Note,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Created_By=self.current_user.Usercode,
                 ),
             )
@@ -186,7 +193,7 @@ class MemberServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 level_code=["CHU"],
                 role_code=["ADM", "SAD"],
                 module_code=["ALLM", "MBSH"],
@@ -199,11 +206,11 @@ class MemberServices:
                         """
                         SELECT M.* , MC.Branch_Code, MC.Join_Date, MC.Join_Code, MC.Join_Note FROM tblMember M
                         LEFT JOIN tblMemberBranch MC ON MC.Member_Code = M.Code
-                        WHERE M.HeadChurch_Code = :HeadChurch_Code
+                        WHERE M.Head_Code = :Head_Code
                         ORDER BY `Code`;
                         """
                     ),
-                    dict(HeadChurch_Code=self.current_user.HeadChurch_Code),
+                    dict(Head_Code=self.current_user.Head_Code),
                 ).all()
                 if is_active is None
                 else self.db.execute(
@@ -211,12 +218,12 @@ class MemberServices:
                         """
                         SELECT M.* , MC.Branch_Code, MC.Join_Date, MC.Join_Code, MC.Join_Note FROM tblMember M
                         LEFT JOIN tblMemberBranch MC ON MC.Member_Code = M.Code
-                        WHERE M.HeadChurch_Code = :HeadChurch_Code AND M.Is_Active = :Is_Active AND MC.Is_Active = :Is_Active
+                        WHERE M.Head_Code = :Head_Code AND M.Is_Active = :Is_Active AND MC.Is_Active = :Is_Active
                         ORDER BY `Code`;
                         """
                     ),
                     dict(
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Head_Code=self.current_user.Head_Code,
                         Is_Active=is_active,
                     ),
                 ).all()
@@ -235,24 +242,24 @@ class MemberServices:
                     SELECT M.* , MC.Branch_Code, MC.Join_Date, MC.Join_Code, MC.Join_Note, MC.Exit_Date, MC.Exit_Code, MC.Exit_Note
                     FROM tblMember M
                     LEFT JOIN tblMemberBranch MC ON MC.Member_Code = M.Code AND MC.Is_Active = :Is_Active
-                    WHERE (M.Code = :Code or M.Id = :Id) AND M.HeadChurch_Code = :HeadChurch_Code
+                    WHERE (M.Code = :Code or M.Id = :Id) AND M.Head_Code = :Head_Code
                     """
                 ),
                 dict(
                     Code=member_code_id,
                     Id=member_code_id,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Is_Active=1,
                 ),
             ).first()
             # # get level
             # level = get_level(
-            #     member.Branch_Code, self.current_user.HeadChurch_Code, self.db
+            #     member.Branch_Code, self.current_user.Head_Code, self.db
             # ) if member.Branch_Code is not None else 0
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 # church_code=member.Branch_Code,
                 # level_no=level.Level_No - 1,
                 role_code=["ADM", "SAD", "EXC"],
@@ -279,12 +286,12 @@ class MemberServices:
                     SELECT M.* , MC.Branch_Code, MC.Join_Date, MC.Join_Code, MC.Join_Note 
                     FROM tblMember M
                     LEFT JOIN tblMemberBranch MC ON MC.Member_Code = M.Code
-                    WHERE `Code` = :Code AND M.HeadChurch_Code = :HeadChurch_Code AND M.Is_Active = :Is_Active AND MC.Is_Active = :Is_Active;
+                    WHERE `Code` = :Code AND M.Head_Code = :Head_Code AND M.Is_Active = :Is_Active AND MC.Is_Active = :Is_Active;
                     """
                 ),
                 dict(
                     Code=self.current_user.Usercode,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Is_Active=1,
                 ),
             ).first()
@@ -302,11 +309,11 @@ class MemberServices:
     async def get_members_by_church(self, church_code: str):
         """Get Members By Church: accessible to only church admins and executives of same/higher level/church"""
         try:
-            level = get_level(church_code, self.current_user.HeadChurch_Code, self.db)
+            level = get_level(church_code, self.current_user.Head_Code, self.db)
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 church_code=church_code,
                 level_no=level.Level_No - 1,
                 role_code=["ADM", "SAD", "EXC"],
@@ -322,14 +329,14 @@ class MemberServices:
                         SELECT M.* , MC.Branch_Code, MC.Join_Date, MC.Join_Code, MC.Join_Note 
                         FROM tblMember M
                             LEFT JOIN tblMemberBranch MC ON MC.Member_Code = M.Code
-                        WHERE M.HeadChurch_Code = :HeadChurch_Code 
+                        WHERE M.Head_Code = :Head_Code 
                             AND M.Is_Active = :Is_Active AND MC.Is_Active = :Is_Active
                             AND MC.Branch_Code = :Church_Code;
                         """
                     ),
                     dict(
                         Church_Code=church_code.upper(),
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Head_Code=self.current_user.Head_Code,
                         Is_Active=1,
                     ),
                 ).all()
@@ -340,7 +347,7 @@ class MemberServices:
                         {church_recursive_cte}
                         SELECT M.* , MC.Branch_Code, MC.Join_Date, MC.Join_Code, MC.Join_Note FROM tblMember M
                             LEFT JOIN tblMemberBranch MC ON MC.Member_Code = M.Code
-                        WHERE M.HeadChurch_Code = :HeadChurch_Code 
+                        WHERE M.Head_Code = :Head_Code 
                             AND M.Is_Active = :Is_Active AND MC.Is_Active = :Is_Active
                             AND MC.Branch_Code IN (
                                 SELECT Church FROM ChurchHierarchy
@@ -350,7 +357,7 @@ class MemberServices:
                     ),
                     dict(
                         Church_Code=church_code.upper(),
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Head_Code=self.current_user.Head_Code,
                         Is_Active=1,
                     ),
                 ).all()
@@ -366,12 +373,12 @@ class MemberServices:
             old_member = await self.get_member_by_code_id(member_code_id)
             # get church level
             level_no = get_level(
-                old_member.Branch_Code, self.current_user.HeadChurch_Code, self.db
+                old_member.Branch_Code, self.current_user.Head_Code, self.db
             )
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 church_code=old_member.Branch_Code,
                 level_no=level_no.Level_No - 1,
                 role_code=["ADM", "SAD", "EXC"],
@@ -387,7 +394,7 @@ class MemberServices:
             # check duplicate entry
             check_duplicate_entry(
                 self.db,
-                self.current_user.HeadChurch_Code,
+                self.current_user.Head_Code,
                 "tblMember",
                 "Personal_Contact_No",
                 member.Personal_Contact_No,
@@ -395,7 +402,7 @@ class MemberServices:
             )
             check_duplicate_entry(
                 self.db,
-                self.current_user.HeadChurch_Code,
+                self.current_user.Head_Code,
                 "tblMember",
                 "Personal_Email",
                 member.Personal_Email,
@@ -408,7 +415,7 @@ class MemberServices:
                     UPDATE tblMember 
                     SET 
                         First_Name = :First_Name, Last_Name = :Last_Name, Middle_Name = :Middle_Name, Title = :Title, Title2 = :Title2, Family_Name = :Family_Name, Is_FamilyHead = :Is_FamilyHead, Home_Address = :Home_Address, Date_of_Birth = :Date_of_Birth, Gender = :Gender, Marital_Status = :Marital_Status, Employ_Status = :Employ_Status, Occupation = :Occupation, Office_Address = :Office_Address, State_of_Origin = :State_of_Origin, Personal_Contact_No = :Personal_Contact_No, Contact_No = :Contact_No, Contact_No2 = :Contact_No2, Personal_Email = :Personal_Email, Contact_Email = :Contact_Email, Contact_Email2 = :Contact_Email2, Town_Code = :Town_Code, State_Code = :State_Code, Region_Code = :Region_Code, Country_Code = :Country_Code, `Type` = :Type, Is_Clergy = :Is_Clergy, Modified_By = :Modified_By
-                    WHERE (`Code` = :Code OR Id = :Id) AND HeadChurch_Code = :HeadChurch_Code;
+                    WHERE (`Code` = :Code OR Id = :Id) AND Head_Code = :Head_Code;
                     """
                 ),
                 dict(
@@ -528,7 +535,7 @@ class MemberServices:
                         else old_member.Is_Clergy
                     ),
                     Modified_By=self.current_user.Usercode,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Code=member_code_id,
                     Id=member_code_id,
                 ),
@@ -558,7 +565,7 @@ class MemberServices:
             # check duplicate entry
             check_duplicate_entry(
                 self.db,
-                self.current_user.HeadChurch_Code,
+                self.current_user.Head_Code,
                 "tblMember",
                 "Personal_Contact_No",
                 member.Personal_Contact_No,
@@ -566,7 +573,7 @@ class MemberServices:
             )
             check_duplicate_entry(
                 self.db,
-                self.current_user.HeadChurch_Code,
+                self.current_user.Head_Code,
                 "tblMember",
                 "Personal_Email",
                 member.Personal_Email,
@@ -578,7 +585,7 @@ class MemberServices:
                     """
                     UPDATE tblMember 
                     SET First_Name = :First_Name, Last_Name = :Last_Name, Middle_Name = :Middle_Name, Title = :Title, Title2 = :Title2, Family_Name = :Family_Name, Is_FamilyHead = :Is_FamilyHead, Home_Address = :Home_Address, Date_of_Birth = :Date_of_Birth, Gender = :Gender, Marital_Status = :Marital_Status, Employ_Status = :Employ_Status, Occupation = :Occupation, Office_Address = :Office_Address, State_of_Origin = :State_of_Origin, Personal_Contact_No = :Personal_Contact_No, Contact_No = :Contact_No, Contact_No2 = :Contact_No2, Personal_Email = :Personal_Email, Contact_Email = :Contact_Email, Contact_Email2 = :Contact_Email2, Town_Code = :Town_Code, State_Code = :State_Code, Region_Code = :Region_Code, Country_Code = :Country_Code, Modified_By = :Modified_By
-                    WHERE `Code` = :Code AND HeadChurch_Code = :HeadChurch_Code;
+                    WHERE `Code` = :Code AND Head_Code = :Head_Code;
                     """
                 ),
                 dict(
@@ -692,7 +699,7 @@ class MemberServices:
                         else old_member.Country_Code
                     ),
                     Modified_By=self.current_user.Usercode,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Code=member_code,
                 ),
             )
@@ -706,11 +713,11 @@ class MemberServices:
         """Deactivate Member by Code: accessible to only church admins in the same/higher level/church."""
         try:
             member = await self.get_member_by_code_id(member_code)
-            level = get_level("BRN", self.current_user.HeadChurch_Code, self.db)
+            level = get_level("BRN", self.current_user.Head_Code, self.db)
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 church_code=member.Branch_Code,
                 level_no=level.Level_No - 1,
                 role_code=["ADM", "SAD"],
@@ -730,13 +737,13 @@ class MemberServices:
                     """
                     UPDATE tblMember
                     SET Is_Active = :Is_Active
-                    WHERE `Code` = :Code AND HeadChurch_Code = :HeadChurch_Code AND Is_Active = :Is_Active2;
+                    WHERE `Code` = :Code AND Head_Code = :Head_Code AND Is_Active = :Is_Active2;
                     """
                 ),
                 dict(
                     Is_Active=0,
                     Code=member.Code,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Is_Active2=1,
                 ),
             )
@@ -754,13 +761,11 @@ class MemberServices:
         """Activate Member by Code: accessible to only church admins in the same/higher level/church."""
         try:
             member = await self.get_member_by_code_id(member_code)
-            level = get_level(
-                member.Branch_Code, self.current_user.HeadChurch_Code, self.db
-            )
+            level = get_level(member.Branch_Code, self.current_user.Head_Code, self.db)
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 church_code=member.Branch_Code,
                 level_no=level.Level_No - 1,
                 role_code=["ADM", "SAD"],
@@ -783,13 +788,13 @@ class MemberServices:
                     """
                     UPDATE tblMember
                     SET Is_Active = :Is_Active
-                    WHERE `Code` = :Code AND HeadChurch_Code = :HeadChurch_Code AND Is_Active = :Is_Active2;
+                    WHERE `Code` = :Code AND Head_Code = :Head_Code AND Is_Active = :Is_Active2;
                     """
                 ),
                 dict(
                     Is_Active=1,
                     Code=member.Code,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Is_Active2=0,
                 ),
             )
@@ -799,9 +804,9 @@ class MemberServices:
                 text(
                     """
                     INSERT INTO tblMemberBranch
-                    (Member_Code, Branch_Code, Join_Date, Join_Note, Join_Code, HeadChurch_Code)
+                    (Member_Code, Branch_Code, Join_Date, Join_Note, Join_Code, Head_Code)
                     VALUES
-                    (:Member_Code, :Branch_Code, :Join_Date, :Join_Note, :Join_Code, :HeadChurch_Code);
+                    (:Member_Code, :Branch_Code, :Join_Date, :Join_Note, :Join_Code, :Head_Code);
                     """
                 ),
                 dict(
@@ -810,7 +815,7 @@ class MemberServices:
                     Join_Date=member_church.Join_Date,
                     Join_Note=member_church.Join_Note,
                     Join_Code=member_church.Join_Code,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                 ),
             )
             self.db.commit()
@@ -825,7 +830,7 @@ class MemberServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 level_no=0,
                 role_code=["ADM", "SAD"],
                 module_code=["ALLM", "MBSH"],
@@ -844,14 +849,14 @@ class MemberServices:
                     """
                     UPDATE tblMember
                     SET Is_Clergy = :Is_Clergy
-                    WHERE `Code` = :Code AND HeadChurch_Code = :HeadChurch_Code 
+                    WHERE `Code` = :Code AND Head_Code = :Head_Code 
                         AND Is_Active = :Is_Active AND Is_Clergy = :Is_Clergy2;
                     """
                 ),
                 dict(
                     Is_Clergy=1,
                     Code=member.Code,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Is_Active=1,
                     Is_Clergy2=0,
                 ),
@@ -868,7 +873,7 @@ class MemberServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 level_no=0,
                 role_code=["ADM", "SAD"],
                 module_code=["ALLM", "MBSH"],
@@ -881,14 +886,14 @@ class MemberServices:
                     """
                     UPDATE tblMember
                     SET Is_Clergy = :Is_Clergy
-                    WHERE `Code` = :Code AND HeadChurch_Code = :HeadChurch_Code 
+                    WHERE `Code` = :Code AND Head_Code = :Head_Code 
                         AND Is_Active = :Is_Active AND Is_Clergy = :Is_Clergy2;
                     """
                 ),
                 dict(
                     Is_Clergy=0,
                     Code=member.Code,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Is_Active=1,
                     Is_Clergy2=1,
                 ),
@@ -908,12 +913,12 @@ class MemberServices:
         """Get Member Branches: accessible to only church admins in the same/higher level/church."""
         try:
             member = await self.get_member_by_code_id(member_code)
-            level = get_level("BRN", self.current_user.HeadChurch_Code, self.db)
+            level = get_level("BRN", self.current_user.Head_Code, self.db)
 
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 church_code=member.Branch_Code,
                 level_no=level.Level_No - 1,
                 role_code=["ADM", "SAD"],
@@ -951,14 +956,14 @@ class MemberServices:
                             FROM tblMemberBranch MC
                                 LEFT JOIN tblMember M ON M.Code = MC.Member_Code
                                 LEFT JOIN tblChurches C ON C.Code = MC.Branch_Code
-                            WHERE MC.Member_Code = :Member_Code AND MC.HeadChurch_Code = :HeadChurch_Code
+                            WHERE MC.Member_Code = :Member_Code AND MC.Head_Code = :Head_Code
                                 AND MC.Branch_Code = :Branch_Code AND MC.Is_Active = :Is_Active
                             ORDER BY MC.Join_Date;
                             """
                         ),
                         dict(
                             Member_Code=member_code,
-                            HeadChurch_Code=self.current_user.HeadChurch_Code,
+                            Head_Code=self.current_user.Head_Code,
                             Is_Active=is_active,
                             Branch_Code=branch_code,
                         ),
@@ -972,14 +977,14 @@ class MemberServices:
                         FROM tblMemberBranch MC
                             LEFT JOIN tblMember M ON M.Code = MC.Member_Code
                             LEFT JOIN tblChurches C ON C.Code = MC.Branch_Code
-                        WHERE MC.Member_Code = :Member_Code AND MC.HeadChurch_Code = :HeadChurch_Code
+                        WHERE MC.Member_Code = :Member_Code AND MC.Head_Code = :Head_Code
                             AND MC.Is_Active = :Is_Active
                         ORDER BY MC.Join_Date;
                         """
                         ),
                         dict(
                             Member_Code=member_code,
-                            HeadChurch_Code=self.current_user.HeadChurch_Code,
+                            Head_Code=self.current_user.Head_Code,
                             Is_Active=is_active,
                         ),
                     ).all()
@@ -993,14 +998,14 @@ class MemberServices:
                             FROM tblMemberBranch MC
                                 LEFT JOIN tblMember M ON M.Code = MC.Member_Code
                                 LEFT JOIN tblChurches C ON C.Code = MC.Branch_Code
-                            WHERE MC.Member_Code = :Member_Code AND MC.HeadChurch_Code = :HeadChurch_Code
+                            WHERE MC.Member_Code = :Member_Code AND MC.Head_Code = :Head_Code
                                 AND MC.Branch_Code = :Branch_Code
                             ORDER BY MC.Join_Date;
                             """
                         ),
                         dict(
                             Member_Code=member_code,
-                            HeadChurch_Code=self.current_user.HeadChurch_Code,
+                            Head_Code=self.current_user.Head_Code,
                             Branch_Code=branch_code,
                         ),
                     ).all()
@@ -1013,13 +1018,13 @@ class MemberServices:
                         FROM tblMemberBranch MC
                             LEFT JOIN tblMember M ON M.Code = MC.Member_Code
                             LEFT JOIN tblChurches C ON C.Code = MC.Branch_Code
-                        WHERE MC.Member_Code = :Member_Code AND MC.HeadChurch_Code = :HeadChurch_Code
+                        WHERE MC.Member_Code = :Member_Code AND MC.Head_Code = :Head_Code
                         ORDER BY MC.Join_Date;
                         """
                         ),
                         dict(
                             Member_Code=member_code,
-                            HeadChurch_Code=self.current_user.HeadChurch_Code,
+                            Head_Code=self.current_user.Head_Code,
                         ),
                     ).all()
             # if not member_branches:
@@ -1066,12 +1071,12 @@ class MemberServices:
         """Exit Member From Church: accessible to only church admins in the same/higher level/church."""
         try:
             level = get_level(
-                member_exit.Branch_Code, self.current_user.HeadChurch_Code, self.db
+                member_exit.Branch_Code, self.current_user.Head_Code, self.db
             )
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 church_code=member_exit.Branch_Code,
                 level_no=level.Level_No - 1,
                 role_code=["ADM", "SAD"],
@@ -1103,7 +1108,7 @@ class MemberServices:
                     UPDATE tblMemberBranch
                     SET Exit_Date = :Exit_Date, Exit_Note = :Exit_Note, Exit_Code = :Exit_Code, Is_Active = :Is_Active, Modified_By = :Modified_By
                     WHERE Member_Code = :Member_Code AND Branch_Code = :Branch_Code
-                        AND HeadChurch_Code = :HeadChurch_Code AND Is_Active = :Is_Active2;
+                        AND Head_Code = :Head_Code AND Is_Active = :Is_Active2;
                     """
                 ),
                 dict(
@@ -1117,7 +1122,7 @@ class MemberServices:
                     Modified_By=self.current_user.Usercode,
                     Member_Code=member.Code,
                     Branch_Code=member_exit.Branch_Code,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Is_Active=0,
                     Is_Active2=1,
                 ),
@@ -1136,7 +1141,7 @@ class MemberServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 level_no=1,
                 role_code=["ADM", "SAD"],
                 module_code=["ALLM", "MBSH"],
@@ -1149,7 +1154,7 @@ class MemberServices:
                     """
                     UPDATE tblMemberBranch
                     SET Exit_Date = :Exit_Date, Exit_Note = :Exit_Note, Exit_Code = :Exit_Code, Is_Active = :Is_Active, Modified_By = :Modified_By
-                    WHERE Member_Code = :Member_Code AND HeadChurch_Code = :HeadChurch_Code AND Is_Active = :Is_Active2;
+                    WHERE Member_Code = :Member_Code AND Head_Code = :Head_Code AND Is_Active = :Is_Active2;
                     """
                 ),
                 dict(
@@ -1158,7 +1163,7 @@ class MemberServices:
                     Exit_Code="OTH",
                     Modified_By=self.current_user.Usercode,
                     Member_Code=member_code,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Is_Active=0,
                     Is_Active2=1,
                 ),
@@ -1174,12 +1179,12 @@ class MemberServices:
         """Join Member To Church: accessible to only church admins in the same/higher level/church."""
         try:
             level = get_level(
-                member_join.Branch_Code, self.current_user.HeadChurch_Code, self.db
+                member_join.Branch_Code, self.current_user.Head_Code, self.db
             )
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 church_code=member_join.Branch_Code,
                 level_no=level.Level_No - 1,
                 role_code=["ADM", "SAD"],
@@ -1210,15 +1215,15 @@ class MemberServices:
                 text(
                     """
                     INSERT INTO tblMemberBranch
-                    (Member_Code, Branch_Code, HeadChurch_Code, Join_Date, Join_Code, Join_Note, Is_Active, Created_By)
+                    (Member_Code, Branch_Code, Head_Code, Join_Date, Join_Code, Join_Note, Is_Active, Created_By)
                     VALUES
-                    (:Member_Code, :Branch_Code, :HeadChurch_Code, :Join_Date, :Join_Code, :Join_Note, :Is_Active, :Created_By);
+                    (:Member_Code, :Branch_Code, :Head_Code, :Join_Date, :Join_Code, :Join_Note, :Is_Active, :Created_By);
                     """
                 ),
                 dict(
                     Member_Code=member.Code,
                     Branch_Code=member_join.Branch_Code,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Join_Date=(
                         member_join.Join_Date
                         if member_join.Join_Date
@@ -1244,7 +1249,7 @@ class MemberServices:
         try:
             memb_brn = await self.get_member_branch_by_id(member_branch_id)
             level = get_level(
-                memb_brn.Branch_Code, self.current_user.HeadChurch_Code, self.db
+                memb_brn.Branch_Code, self.current_user.Head_Code, self.db
             )
             branch = await self.church_services.get_church_by_id_code(
                 memb_brn.Branch_Code
@@ -1252,7 +1257,7 @@ class MemberServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 church_code=branch.Code,
                 level_no=level.Level_No - 1,
                 role_code=["ADM", "SAD", "EXC"],
@@ -1301,6 +1306,28 @@ class MemberServices:
             return await self.get_member_branch_by_id(member_branch_id)
         except Exception as err:
             self.db.rollback()
+            raise err
+
+    async def get_member_church_hierarchy_by_member_code(self, member_code: str):
+        try:
+            member = await self.get_member_by_code_id(member_code)
+            # fetch data
+            mc_hierarchy = self.db.execute(
+                text(
+                    """
+                    SELECT * FROM vwMemberChurchHierarchy
+                    WHERE Member_Code = :Member_Code
+                    """
+                ),
+                dict(Member_Code=member.Code),
+            ).first()
+            if not mc_hierarchy:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Member's church hierarchy not found",
+                )
+            return mc_hierarchy
+        except Exception as err:
             raise err
 
 

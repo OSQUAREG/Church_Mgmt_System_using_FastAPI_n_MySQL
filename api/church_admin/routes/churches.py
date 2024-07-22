@@ -2,11 +2,14 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, status, Depends, Query, Path  # type: ignore
 
-from ...hierarchy_mgmt.services import ChurchServices, get_church_services
-from ...hierarchy_mgmt.models.church import ChurchBase, ChurchResponse, ChurchUpdate
+from ...church_admin.services import ChurchServices, get_church_services
+from ...church_admin.models.churches import ChurchBase, ChurchResponse, ChurchUpdate
+from ...swagger_doc import tags
 
-
-church_router = APIRouter(prefix=f"/church", tags=["Churches Sub-Module Operations"])
+church_router = APIRouter(
+    prefix=f"/church",
+    tags=[f"{tags['churches']['module']}: {tags['churches']['submodule']}"],
+)
 """
 #### Church Routes
 - Approved Church by Code
@@ -18,7 +21,8 @@ church_router = APIRouter(prefix=f"/church", tags=["Churches Sub-Module Operatio
 """
 
 church_adm_router = APIRouter(
-    prefix=f"/admin/church", tags=["Churches Sub-Module Operations - Admin only"]
+    prefix=f"/admin/church",
+    tags=[f"{tags['churches']['module']}: {tags['churches']['submodule']}: Admin only"],
 )
 """
 #### Church Routes
@@ -33,6 +37,8 @@ church_adm_router = APIRouter(
     "/create/{level_code}",
     status_code=status.HTTP_201_CREATED,
     name="Create New Church",
+    summary="Create New Church",
+    description="## Create New Church",
     response_model=ChurchResponse,
 )
 async def create_new_church(
@@ -56,7 +62,9 @@ async def create_new_church(
 @church_adm_router.patch(
     "/{code}/activate",
     status_code=status.HTTP_200_OK,
-    name="Activate Church by Code",
+    name="Activate Church",
+    summary="Activate Church by Code",
+    description="## Activate Church by Code",
     response_model=ChurchResponse,
 )
 async def activate_church_by_code(
@@ -77,7 +85,9 @@ async def activate_church_by_code(
 @church_adm_router.patch(
     "/{code}/deactivate",
     status_code=status.HTTP_200_OK,
-    name="Deactivate Church by Code",
+    name="Deactivate Church",
+    summary="Deactivate Church by Code",
+    description="## Deactivate Church by Code",
     response_model=ChurchResponse,
 )
 async def deactivate_church_by_code(
@@ -98,7 +108,9 @@ async def deactivate_church_by_code(
 @church_router.patch(
     "/{id_code}/approve",
     status_code=status.HTTP_200_OK,
-    name="Approve Church by Id or Code",
+    name="Approve Church",
+    summary="Approve Church by Id or Code",
+    description="## Approve Church by Id or Code",
     response_model=ChurchResponse,
 )
 async def approve_church_by_code(
@@ -120,13 +132,15 @@ async def approve_church_by_code(
     "/",
     status_code=status.HTTP_200_OK,
     name="Get All Churches",
+    summary="Get All Churches",
+    description="## Retrieve All Churches",
     response_model=ChurchResponse,
 )
 async def get_all_churches(
     church_services: Annotated[ChurchServices, Depends(get_church_services)],
     status_code: Optional[str] = Query(
         default=None,
-        description="(Optional) status of the churches to retrieve: ACT-active, INA-inactive, AWT-awaiting, APR-approved, REJ-rejected",
+        description="(Optional) status of the churches to retrieve: ACT-active, INA-inactive, PND-pending, APR-approved, REJ-rejected",
     ),
 ):
     churches = await church_services.get_all_churches(status_code)
@@ -148,6 +162,8 @@ async def get_all_churches(
     "/level/{level_code}",
     status_code=status.HTTP_200_OK,
     name="Get Churches by Level",
+    summary="Get Churches by Church Level",
+    description="## Retrieve Churches by Hierarchical Church Level",
     response_model=ChurchResponse,
 )
 async def get_churches_by_level(
@@ -155,7 +171,7 @@ async def get_churches_by_level(
     church_services: Annotated[ChurchServices, Depends(get_church_services)],
     status_code: Optional[str] = Query(
         default=None,
-        description="(Optional) status of the churches to retrieve: ACT-active, INA-inactive, AWT-awaiting, APR-approved, REJ-rejected",
+        description="(Optional) status of the churches to retrieve: ACT-active, INA-inactive, PND-pending, APR-approved, REJ-rejected",
     ),
 ):
     churches = await church_services.get_churches_by_level(level_code, status_code)
@@ -176,7 +192,9 @@ async def get_churches_by_level(
 @church_router.get(
     "/{id_code}",
     status_code=status.HTTP_200_OK,
-    name="Get Church by Id or Code",
+    name="Get Church",
+    summary="Get Church by Id or Code",
+    description="## Retrieve Church by Id or Code",
     response_model=ChurchResponse,
 )
 async def get_church_by_id_code(
@@ -197,7 +215,9 @@ async def get_church_by_id_code(
 @church_router.put(
     "/{code}/update",
     status_code=status.HTTP_200_OK,
-    name="Update Church by Code",
+    name="Update Church",
+    summary="Update Church by Code",
+    description="## Update Church by Code",
     response_model=ChurchResponse,
 )
 async def update_church_by_code(

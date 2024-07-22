@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     password: str
     user: str
     database: str
+    db_schema_headchu: str
+    db_schema_generic: str
 
     # Swagger/Server settings
     dev_prefix: str

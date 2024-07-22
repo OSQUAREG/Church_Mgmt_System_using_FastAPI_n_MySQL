@@ -2,18 +2,22 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, status, Depends, Query, Path  # type: ignore
 
-from ...hierarchy_mgmt.services import (
+from ...church_admin.services import (
     ChurchServices,
     ChurchLeadsServices,
     get_church_services,
     get_church_lead_services,
 )
-from ...hierarchy_mgmt.models.church_leads import ChurchLeadsResponse
-from ...hierarchy_mgmt.models.church import ChurchResponse
-
+from ...church_admin.models.church_leads import (
+    ChurchLeadHierarchyResponse,
+    ChurchLeadsResponse,
+)
+from ..models.churches import ChurchResponse
+from ...swagger_doc import tags
 
 churchleads_router = APIRouter(
-    prefix=f"/church_leads", tags=["Church Leads Sub-Module Operations"]
+    prefix=f"/church_leads",
+    tags=[f"{tags['church_leads']['module']}: {tags['church_leads']['submodule']}"],
 )
 """
 #### Church Leads Routes
@@ -24,7 +28,9 @@ churchleads_router = APIRouter(
 
 churchleads_adm_router = APIRouter(
     prefix=f"/admin/church_leads",
-    tags=["Church Leads Sub-Module Operations - Admin only"],
+    tags=[
+        f"{tags['church_leads']['module']}: {tags['church_leads']['submodule']}: Admin only"
+    ],
 )
 """
 #### Church Leads Routes
@@ -38,6 +44,8 @@ churchleads_adm_router = APIRouter(
     "/{church_code}",
     status_code=status.HTTP_200_OK,
     name="Get Church Lead",
+    summary="Get Church Lead by Code",
+    description="## Retrieve Church Lead by Code",
     response_model=ChurchLeadsResponse,
 )
 async def get_church_leads_by_church_code(
@@ -71,7 +79,9 @@ async def get_church_leads_by_church_code(
 @churchleads_router.patch(
     "/{church_code}/{lead_code}/approve",
     status_code=status.HTTP_200_OK,
-    name="Approve Church Lead by Code",
+    name="Approve Church Lead",
+    summary="Approve Church Lead by Code",
+    description="## Approve Church Lead by Code",
     response_model=ChurchLeadsResponse,
 )
 async def approve_church_lead_by_code(
@@ -93,11 +103,13 @@ async def approve_church_lead_by_code(
     return response
 
 
-# Get all churches by lead code
+# Get churches by lead code
 @churchleads_router.get(
     "/{lead_code}/churches",
     status_code=status.HTTP_200_OK,
-    name="Get All Churches by Leads Code",
+    name="Get Churches by Lead",
+    summary="Get Churches by Leads Code",
+    description="## Retrieve Churches by Leads Code",
     response_model=ChurchResponse,
 )
 async def get_all_churches_by_lead_code(
@@ -142,7 +154,9 @@ async def get_all_churches_by_lead_code(
 @churchleads_router.get(
     "/{church_code}/branches",
     status_code=status.HTTP_200_OK,
-    name="Get Branches by Church",
+    name="Get Branches by Church Lead",
+    summary="Get Branches by Church Lead Code",
+    description="## Retrieve Branches by Church Lead Code",
     response_model=ChurchResponse,
 )
 async def get_branches_by_church(
@@ -179,6 +193,8 @@ async def get_branches_by_church(
     "/{church_code}/unmap",
     status_code=status.HTTP_200_OK,
     name="Unmap Church Lead",
+    summary="Unmap Church Lead by Church Code",
+    description="## Unmap Church Leads by Church code",
     response_model=ChurchLeadsResponse,
 )
 async def unmap_church_leads_by_church(
@@ -208,6 +224,8 @@ async def unmap_church_leads_by_church(
     "/{church_code}/map/{lead_code}",
     status_code=status.HTTP_200_OK,
     name="Map Church Lead",
+    summary="Map Church Lead",
+    description="## Map Church Leads",
     response_model=ChurchLeadsResponse,
 )
 async def map_church_to_lead_by_code(
@@ -227,5 +245,32 @@ async def map_church_to_lead_by_code(
         data=mapped,
         status_code=status.HTTP_200_OK,
         message=f"Successfully mapped Church: '{mapped.Church_Code}' to Lead Church: '{mapped.LeadChurch_Code}",
+    )
+    return response
+
+
+# Get Church Lead Hierarchy
+@churchleads_router.get(
+    "/{church_code}/hierarchy",
+    status_code=status.HTTP_200_OK,
+    name="Get Church Lead Hierarchy",
+    summary="Get Church Lead Hierarchy by Church Code",
+    description="## Retrieve Church Lead Hierarchy by Church Code",
+    response_model=ChurchLeadHierarchyResponse,
+)
+async def get_church_lead_hierarchy_by_church_code(
+    church_code,
+    church_lead_services: Annotated[
+        ChurchLeadsServices, Depends(get_church_lead_services)
+    ],
+):
+    hierarchy = await church_lead_services.get_church_lead_hierarchy_by_church_code(
+        church_code
+    )
+    # set response body
+    response = dict(
+        data=hierarchy,
+        status_code=status.HTTP_200_OK,
+        message=f"Successfully retrieved the Church Lead Hierarchy for the Church: '{hierarchy.Church_Name} ({hierarchy.Church_Code})'",
     )
     return response

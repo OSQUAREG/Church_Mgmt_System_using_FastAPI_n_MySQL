@@ -16,17 +16,18 @@ def get_phonenumber(number_str: str):
 def check_if_new_code_name_exist(
     new_code_name: str,
     table_name: str,
+    schema_name: str,
     db: Session,
     action: str,
     existing_code_name: Optional[str] = None,
-    headchurch_code: Optional[str] = None,
+    head_code: Optional[str] = None,
 ):
     if action == "create":
         code_name_check = (
             db.execute(
                 text(
                     f"""
-                    SELECT * FROM {table_name} 
+                    SELECT * FROM {schema_name}.{table_name} 
                     WHERE (
                         upper(Code) = upper(:Code)
                         OR lower(Name) = lower(:Name)
@@ -35,12 +36,12 @@ def check_if_new_code_name_exist(
                 ),
                 dict(Code=new_code_name, Name=new_code_name),
             ).first()
-            if headchurch_code is None
+            if head_code is None
             else db.execute(
                 text(
                     f"""
-                    SELECT * FROM {table_name} 
-                    WHERE HeadChurch_Code = :HeadChurch_Code AND (
+                    SELECT * FROM {schema_name}.{table_name} 
+                    WHERE Head_Code = :Head_Code AND (
                         upper(Code) = upper(:Code)
                         OR lower(Name) = lower(:Name)
                     );
@@ -49,7 +50,7 @@ def check_if_new_code_name_exist(
                 dict(
                     Code=new_code_name,
                     Name=new_code_name,
-                    HeadChurch_Code=headchurch_code,
+                    Head_Code=head_code,
                 ),
             ).first()
         )
@@ -73,12 +74,12 @@ def check_if_new_code_name_exist(
                     ),
                     dict(Code=new_code_name, Name=new_code_name),
                 ).first()
-                if headchurch_code is None
+                if head_code is None
                 else db.execute(
                     text(
                         f"""
                         SELECT * FROM {table_name} 
-                        WHERE HeadChurch_Code = :HeadChurch_Code AND (
+                        WHERE Head_Code = :Head_Code AND (
                             upper(Code) = upper(:Code)
                             OR lower(Name) = lower(:Name)
                         );
@@ -87,7 +88,7 @@ def check_if_new_code_name_exist(
                     dict(
                         Code=new_code_name,
                         Name=new_code_name,
-                        HeadChurch_Code=headchurch_code,
+                        Head_Code=head_code,
                     ),
                 ).first()
             )
@@ -106,7 +107,7 @@ def check_if_new_code_name_exist(
 
 def check_duplicate_entry(
     db: Session,
-    headchurch_code: str,
+    head_code: str,
     table_name: str,
     column_name: str,
     column_value,
@@ -127,11 +128,11 @@ def check_duplicate_entry(
 
     query = f"""
     SELECT * FROM {table_name} 
-    WHERE HeadChurch_Code = :Headchurch_Code AND (
+    WHERE Head_Code = :Head_Code AND (
         {column_name} = :column_value
     """
 
-    params = {"Headchurch_Code": headchurch_code, "column_value": column_value}
+    params = {"Head_Code": head_code, "column_value": column_value}
 
     if column_name2 and column_value2:
         query += f" AND {column_name2} = :column_value2"
@@ -173,24 +174,36 @@ def custom_title_case(s):
 
 def set_user_access(
     current_user_access: UserAccess,
-    headchurch_code: str | None = None,
+    head_code: str | None = None,
     church_code: str | None = None,
-    access_type: list | None = None,
-    level_code: list | None = None,
+    access_type: list[str] | None = None,
+    level_code: list[str] | None = None,
     level_no: int | None = None,
-    role_code: list | None = None,
-    module_code: list | None = None,
-    submodule_code: list | None = None,
+    role_code: list[str] | None = None,
+    module_code: list[str] | None = None,
+    submodule_code: list[str] | None = None,
 ):
+    """
+    Set user access based on current user access
+    current_user_access: UserAccess - user access for current user
+    head_code: str or none - head church code
+    church_code: str or none - church code the user must belongs to perform action
+    access_type: list or none - access types the user must have to perform action
+    level_code: list or none - level codes the user must have to perform action
+    level_no: int or none - level number the user must have to perform action
+    role_code: list or none - role codes the user must have to perform action
+    module_code: list or none - module codes the user must have to perform action
+    submodule_code: list or none - submodule codes the user must have to perform action
+    """
     for user_access in current_user_access:
         if (
-            (headchurch_code is None or user_access.HeadChurch_Code == headchurch_code)
+            (head_code is None or user_access.Head_Code == head_code)
             # and (church_code is None or user_access.Church_Code == church_code)
             and (access_type is None or user_access.Access_Type in access_type)
             and (
                 (church_code is None or user_access.Church_Code == church_code)
                 or (level_code is None or user_access.Level_Code in level_code)
-                or (level_no is None or user_access.Level_No <= level_no)
+                or (level_no is None or user_access.Level_No >= level_no)
             )
             and (role_code is None or user_access.Role_Code in role_code)
             and (module_code is None or user_access.Module_Code in module_code)
@@ -247,3 +260,79 @@ def validate_code_type(code: str | None, category: str, db: Session):
             detail=f"{code.upper()} is an invalid {category} code",
         )
     return True
+
+
+def check_role_code(role_code: str, db: Session):
+    if role_code is None:
+        return None
+    role = db.execute(
+        text(
+            """
+            SELECT Code FROM dfRole 
+            WHERE Code = :Code AND Is_Active = :Active;
+            """
+        ),
+        dict(Code=role_code, Active=1),
+    ).first()
+    # check if code is valid
+    if role is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"{role_code.upper()} is an invalid Role code",
+        )
+    return True
+
+
+def check_level_code(level_code: str, db: Session, head_code: str):
+    if level_code is None:
+        return None
+    level = db.execute(
+        text(
+            """
+            SELECT Level_Code FROM tblHeadChurchLevels 
+            WHERE (Level_Code = :Level_Code OR ChurchLevel_Code = :ChurchLevel_Code) 
+                AND Is_Active = :Active AND Head_Code = :Head_Code;
+            """
+        ),
+        dict(
+            Level_Code=level_code.upper(),
+            ChurchLevel_Code=level_code.upper(),
+            Active=1,
+            Head_Code=head_code,
+        ),
+    ).first()
+    # check if code is valid
+    if level is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"{level_code.upper()} is an invalid Level code",
+        )
+    return level.Level_Code
+
+
+def generate_endpoint_code(endpoint_name: str):
+    return (
+        endpoint_name.replace("  ", "_")
+        .replace(" ", "_")
+        .replace("-", "_")
+        .replace("/", "_")
+        .upper()
+    )
+
+
+def extract_submodule(router_name: str):
+    module_extract = router_name.split(": ")[0]
+    module_name = module_extract.split(" (")[0]
+    module_code = module_extract.split(" (")[1].replace(")", "")
+    submodule_extract = router_name.split(": ")[1]
+    submodule_name = submodule_extract.split(" Sub-Module ")[0]
+    submodule_code = (
+        submodule_extract.split(" Sub-Module ")[1].replace("(", "").replace(")", "")
+    )
+    submodule_details = {
+        "module_name": module_name,
+        "module_code": module_code,
+        "submodule_name": submodule_name,
+        "submodule_code": submodule_code,
+    }
+    return submodule_details

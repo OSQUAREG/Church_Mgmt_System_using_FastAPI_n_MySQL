@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status  # type: ignore
+from fastapi import Depends, HTTPException, status, Request  # type: ignore
 from fastapi.security import OAuth2PasswordBearer  # type: ignore
 from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
 from ..common.database import get_db
+from .utils import generate_endpoint_code
 from ..authentication.models.auth import User
 from ..authentication.services.auth import AuthService, auth_credentials_exception
 
@@ -18,6 +19,7 @@ async def get_current_user(
     db: Session = Depends(get_db),
 ):
     try:
+        # db = db[0]  # use this when connecting with specified dbs in database.py
         # verify access token to get token data (username)
         token_data = AuthService().verify_access_token(token)
         # get user from db
@@ -45,6 +47,7 @@ async def set_db_current_user(
     current_user: User = Depends(get_current_user),
 ):
     try:
+        # db = db[0]  # use this when connecting with specified dbs in database.py
         db.execute(text(f"SET @current_user = '{current_user.Usercode}';"))
         # print("db current user set to", current_user.Usercode)
         return current_user.Usercode
@@ -60,16 +63,22 @@ async def get_current_user_access(
     db: Session = Depends(get_db),
 ):
     try:
+        # db = db[0]  # use this when connecting with specified dbs in database.py
         # verify access token to get token data (church_level)
         token_data = AuthService().re_verify_access_token(token)
-        current_user = AuthService().get_user_access(token_data.username, token_data.church_level, db)  # type: ignore
+        current_user_access = AuthService().get_user_access(token_data.username, token_data.church_level, db)  # type: ignore
 
         # checks if user exist
-        if current_user is None:
+        if current_user_access is None:
             raise auth_credentials_exception
         # print("current user access fetched")
-        return current_user
+        return current_user_access
     except Exception as err:
         print(err)
         # print("current user access not fetched")
         raise err
+
+
+async def get_route_code(request: Request):
+    route_name = request.scope["route"].name
+    return generate_endpoint_code(route_name)

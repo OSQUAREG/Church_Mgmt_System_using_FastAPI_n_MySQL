@@ -5,7 +5,7 @@ from fastapi import HTTPException, status, Depends  # type: ignore
 from sqlalchemy import text  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 
-from ...hierarchy_mgmt.services.church import ChurchServices, get_church_services
+from ...church_admin.services.churches import ChurchServices, get_church_services
 from ...authentication.models.auth import User, UserAccess
 from ...common.database import get_db
 from ...common.utils import get_level, set_user_access
@@ -17,7 +17,7 @@ from ...common.dependencies import (
 
 church_recursive_cte = """
                 WITH RECURSIVE ChurchHierarchy AS (
-                    -- Base case: Select the initial lead church and its direct churches
+                    -- Anchor/Base case: Select the initial lead church and its direct churches
                     SELECT 
                         L.Code AS `Lead`, 
                         L.Name AS Lead_Name, 
@@ -29,7 +29,7 @@ church_recursive_cte = """
                     FROM tblChurches L
                         JOIN tblChurchLeads CL ON CL.LeadChurch_Code = L.Code
                         JOIN tblChurches C ON C.Code = CL.Church_Code
-                    WHERE L.Code = :Church_Code AND L.HeadChurch_Code = :HeadChurch_Code
+                    WHERE L.Code = :Church_Code AND L.Head_Code = :Head_Code
                     
                     UNION ALL
                     
@@ -85,7 +85,7 @@ class ChurchLeadsServices:
                 )
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 module_code=["ALLM", "HRCH"],
                 access_type=["VW"],
             )
@@ -97,13 +97,13 @@ class ChurchLeadsServices:
                     FROM tblChurchLeads CL
                     LEFT JOIN tblChurches C ON C.Code = CL.Church_Code
                     LEFT JOIN tblChurches L ON L.Code = CL.LeadChurch_Code
-                    WHERE Church_Code = :Church_Code AND CL.HeadChurch_Code = :HeadChurch_Code
+                    WHERE Church_Code = :Church_Code AND CL.Head_Code = :Head_Code
                     ORDER BY Start_Date DESC;
                     """
                     ),
                     dict(
                         Church_Code=church_code,
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Head_Code=self.current_user.Head_Code,
                     ),
                 ).all()
                 if status_code is None
@@ -114,14 +114,14 @@ class ChurchLeadsServices:
                     FROM tblChurchLeads CL
                     LEFT JOIN tblChurches C ON C.Code = CL.Church_Code
                     LEFT JOIN tblChurches L ON L.Code = CL.LeadChurch_Code
-                    WHERE Church_Code = :Church_Code AND CL.HeadChurch_Code = :HeadChurch_Code 
+                    WHERE Church_Code = :Church_Code AND CL.Head_Code = :Head_Code 
                         AND CL.Status = :Status 
                     ORDER BY Start_Date DESC;
                     """
                     ),
                     dict(
                         Church_Code=church_code,
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Head_Code=self.current_user.Head_Code,
                         Status=status_code,
                     ),
                 ).all()
@@ -144,7 +144,7 @@ class ChurchLeadsServices:
                 )
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 module_code=["ALLM", "HRCH"],
                 access_type=["VW"],
             )
@@ -155,13 +155,13 @@ class ChurchLeadsServices:
                     FROM tblChurchLeads CL
                     LEFT JOIN tblChurches C ON C.Code = CL.Church_Code
                     LEFT JOIN tblChurches L ON L.Code = CL.LeadChurch_Code
-                    WHERE CL.HeadChurch_Code = :HeadChurch_Code AND CL.Status = :Status
+                    WHERE CL.Head_Code = :Head_Code AND CL.Status = :Status
                         AND Church_Code = :Church_Code
                     ORDER BY Start_Date DESC;
                     """
                 ),
                 dict(
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Status="APR",
                     Church_Code=church.Code,
                     # LeadChurch_Code=lead_church.Code,
@@ -185,7 +185,7 @@ class ChurchLeadsServices:
         try:
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 module_code=["ALLM", "HRCH"],
                 access_type=["VW"],
             )
@@ -198,12 +198,12 @@ class ChurchLeadsServices:
                         SELECT LeadChurch_Code, B.* FROM tblChurchLeads A
                         LEFT JOIN tblChurches B ON B.Code = A.Church_Code
                         WHERE LeadChurch_Code = :LeadChurch_Code
-                            AND A.HeadChurch_Code = :HeadChurch_Code;
+                            AND A.Head_Code = :Head_Code;
                         """
                     ),
                     dict(
                         LeadChurch_Code=lead_church.Code,
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Head_Code=self.current_user.Head_Code,
                     ),
                 ).all()
                 if status_code is None and level_code is None
@@ -215,13 +215,13 @@ class ChurchLeadsServices:
                         SELECT LeadChurch_Code, B.* FROM tblChurchLeads A
                         LEFT JOIN tblChurches B ON B.Code = A.Church_Code
                         WHERE LeadChurch_Code = :LeadChurch_Code
-                            AND A.HeadChurch_Code = :HeadChurch_Code 
+                            AND A.Head_Code = :Head_Code 
                             AND B.Status = :Status;
                         """
                         ),
                         dict(
                             LeadChurch_Code=lead_church.Code,
-                            HeadChurch_Code=self.current_user.HeadChurch_Code,
+                            Head_Code=self.current_user.Head_Code,
                             Status=status_code,
                         ),
                     ).all()
@@ -233,13 +233,13 @@ class ChurchLeadsServices:
                         SELECT LeadChurch_Code, B.* FROM tblChurchLeads A
                         LEFT JOIN tblChurches B ON B.Code = A.Church_Code
                         WHERE LeadChurch_Code = :LeadChurch_Code
-                            AND A.HeadChurch_Code = :HeadChurch_Code 
+                            AND A.Head_Code = :Head_Code 
                             AND B.Level_Code = :Level_Code;
                         """
                         ),
                         dict(
                             LeadChurch_Code=lead_church.Code,
-                            HeadChurch_Code=self.current_user.HeadChurch_Code,
+                            Head_Code=self.current_user.Head_Code,
                             Level_Code=level_code,
                         ),
                     ).all()
@@ -254,7 +254,7 @@ class ChurchLeadsServices:
     ):
         """Get Branches by Church: accessible to all logged in user member."""
         try:
-            level = get_level(church_code, self.current_user.HeadChurch_Code, self.db)
+            level = get_level(church_code, self.current_user.Head_Code, self.db)
             if level.Level_No == 8:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -263,7 +263,7 @@ class ChurchLeadsServices:
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 module_code=["ALLM", "HRCH"],
                 access_type=["VW"],
             )
@@ -274,7 +274,7 @@ class ChurchLeadsServices:
                         f"""
                         {church_recursive_cte}
                         SELECT * FROM tblChurches 
-                        WHERE HeadChurch_Code = :HeadChurch_Code 
+                        WHERE Head_Code = :Head_Code 
                             AND `Code` IN (
                                 SELECT Church FROM ChurchHierarchy
                                 WHERE Church_Level = 'BRN'
@@ -283,7 +283,7 @@ class ChurchLeadsServices:
                         """
                     ),
                     dict(
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Head_Code=self.current_user.Head_Code,
                         Church_Code=church_code.upper(),
                     ),
                 ).all()
@@ -293,7 +293,7 @@ class ChurchLeadsServices:
                         f"""
                         {church_recursive_cte}
                         SELECT * FROM tblChurches 
-                        WHERE HeadChurch_Code = :HeadChurch_Code 
+                        WHERE Head_Code = :Head_Code 
                             AND `Code` IN (
                                 SELECT Church FROM ChurchHierarchy
                                 WHERE Church_Level = 'BRN' 
@@ -303,7 +303,7 @@ class ChurchLeadsServices:
                         """
                     ),
                     dict(
-                        HeadChurch_Code=self.current_user.HeadChurch_Code,
+                        Head_Code=self.current_user.Head_Code,
                         Church_Code=church_code.upper(),
                         Status=status_code,
                     ),
@@ -326,12 +326,12 @@ class ChurchLeadsServices:
                 )
             # get church level no
             level = get_level(
-                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+                church.Level_Code, self.current_user.Head_Code, self.db
             )
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 # level_code=["CHU"],
                 level_no=level.Level_No - 1,
@@ -394,14 +394,23 @@ class ChurchLeadsServices:
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Church: '{church.Name} ({church.Code})' is currently mapped to Lead Church: '{lead_church.Name} ({lead_church.Code})'.",
                     )
+            # check if church is already mapped to same lead church
+            for church_lead in church_leads:
+                if church_lead.LeadChurch_Code == lead_church.Code and (
+                    church_lead.Is_Active or church_lead.Status == "APR"
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Church: '{church.Name} ({church.Code})' is currently mapped to Lead Church: '{lead_church.Name} ({lead_church.Code})'.",
+                    )
             # get church level no
             level = get_level(
-                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+                church.Level_Code, self.current_user.Head_Code, self.db
             )
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 # level_code=["CHU"],
                 level_no=level.Level_No - 1,
@@ -418,9 +427,9 @@ class ChurchLeadsServices:
                 text(
                     """
                     INSERT INTO tblChurchLeads
-                        (Church_Code, Level_Code, LeadChurch_Code, LeadChurch_Level, Start_Date, HeadChurch_Code, Created_By)
+                        (Church_Code, Level_Code, LeadChurch_Code, LeadChurch_Level, Start_Date, Head_Code, Created_By)
                     VALUES 
-                        (:Church_Code, :Level_Code, :LeadChurch_Code, :LeadChurch_Level, :Start_Date, :HeadChurch_Code, :Created_By);
+                        (:Church_Code, :Level_Code, :LeadChurch_Code, :LeadChurch_Level, :Start_Date, :Head_Code, :Created_By);
                     """
                 ),
                 dict(
@@ -429,7 +438,7 @@ class ChurchLeadsServices:
                     LeadChurch_Code=lead_church.Code,
                     LeadChurch_Level=lead_church.Level_Code,
                     Start_Date=datetime.now(),
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Created_By=self.current_user.Usercode,
                 ),
             )
@@ -482,12 +491,12 @@ class ChurchLeadsServices:
                 )
             # get church level no
             level = get_level(
-                church.Level_Code, self.current_user.HeadChurch_Code, self.db
+                church.Level_Code, self.current_user.Head_Code, self.db
             )
             # set user access
             set_user_access(
                 self.current_user_access,
-                headchurch_code=self.current_user.HeadChurch_Code,
+                head_code=self.current_user.Head_Code,
                 role_code=["ADM", "SAD"],
                 # level_code=["CHU"],
                 level_no=level.Level_No - 1,
@@ -503,7 +512,7 @@ class ChurchLeadsServices:
                     SET Status = :Status, Status_Date = :Status_Date, Status_By = :Status_By, Modified_By = :Modified_By
                     WHERE Church_Code = :Church_Code 
                     AND LeadChurch_Code = :LeadChurch_Code
-                    AND HeadChurch_Code = :HeadChurch_Code
+                    AND Head_Code = :Head_Code
                     AND Is_Active = :Is_Active;
                     """
                 ),
@@ -514,12 +523,36 @@ class ChurchLeadsServices:
                     Modified_By=self.current_user.Usercode,
                     Church_Code=church.Code,
                     LeadChurch_Code=lead_church.Code,
-                    HeadChurch_Code=self.current_user.HeadChurch_Code,
+                    Head_Code=self.current_user.Head_Code,
                     Is_Active=1,
                 ),
             )
             self.db.commit()
             return await self.get_current_church_lead_by_code(church.Code)
+        except Exception as err:
+            self.db.rollback()
+            raise err
+
+    async def get_church_lead_hierarchy_by_church_code(self, church_code: str):
+        try:
+            # fetch church data
+            church = await self.church_services.get_church_by_id_code(church_code)
+            # fetch church leads hierarchy
+            church_leads_hierarchy = self.db.execute(
+                text(
+                    """
+                    SELECT * FROM vwChurchLeadHierarchy 
+                    WHERE Church_Code = :Church_Code;
+                    """
+                ),
+                dict(Church_Code=church.Code),
+            ).first()
+            if not church_leads_hierarchy:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Church: '{church.Name} ({church.Code})' not found in any Church Hierarchy.",
+                )
+            return church_leads_hierarchy
         except Exception as err:
             self.db.rollback()
             raise err

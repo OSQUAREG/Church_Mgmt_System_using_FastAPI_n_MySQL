@@ -6,14 +6,20 @@ from ...membership_mgmt.services import get_member_services, MemberServices
 from ...membership_mgmt.models.members import (
     MemberBranchExitIn,
     MemberBranchJoinIn,
+    MemberChurchHierarchyResponse,
     MemberIn,
     MemberResponse,
     MemberUpdate,
     MemberBranchResponse,
     MemberBranchUpdate,
 )
+from ...swagger_doc import tags
 
-members_router = APIRouter(prefix="/members", tags=["Members Sub-Module Operations"])
+members_router = APIRouter(
+    prefix="/members",
+    tags=[f"{tags['members']['module']}: {tags['members']['submodule']}"],
+)
+
 """
 ### Member Routes
 - Get All Members
@@ -26,7 +32,8 @@ members_router = APIRouter(prefix="/members", tags=["Members Sub-Module Operatio
 """
 
 members_adm_router = APIRouter(
-    prefix="/admin/members", tags=["Members Sub-Module Operations - Admin only"]
+    prefix="/admin/members",
+    tags=[f"{tags['members']['module']}: {tags['members']['submodule']}: Admin only"],
 )
 """
 ### Member Routes
@@ -39,25 +46,29 @@ members_adm_router = APIRouter(
 
 
 member_branch_router = APIRouter(
-    prefix="/member_branch", tags=["Member-Branch Sub-Module Operations"]
+    prefix="/member_branch",
+    tags=[f"{tags['member_branch']['module']}: {tags['member_branch']['submodule']}"],
 )
 """
-### Member Church Routes
-- Get Member's All Church
-- Get Member's Church by Code
+### Member Branch Routes
+- Get Member Current Branch
+- Get Member-Branch by Code
+- Get Member All Branches
+- Get Member Church Hierarchy by Member Code
 """
 
 
 member_branch_adm_router = APIRouter(
     prefix="/admin/member_branch",
-    tags=["Member-Branch Sub-Module Operations - Admin only"],
+    tags=[
+        f"{tags['member_branch']['module']}: {tags['member_branch']['submodule']}: Admin only"
+    ],
 )
 """
-### Member Church Admin Routes
+### Member Branch Admin Routes
 - Exit Member From All Churches
 - Exit Memeber From Church
 - Join Member To Church
-
 """
 
 
@@ -66,6 +77,8 @@ member_branch_adm_router = APIRouter(
     "/create",
     status_code=status.HTTP_201_CREATED,
     name="Create New Member",
+    summary="Create New Member",
+    description="## Create New Member",
     response_model=MemberResponse,
 )
 async def create_new_member(
@@ -90,7 +103,9 @@ async def create_new_member(
 # Deactivate Member by Code
 @members_adm_router.patch(
     "/{member_code}/deactivate",
-    name="Deactivate Member by Code",
+    name="Deactivate Member",
+    summary="Deactivate Member by Code",
+    description="## Deactivate Member by Code",
     response_model=MemberResponse,
 )
 async def deactivate_member(
@@ -112,7 +127,9 @@ async def deactivate_member(
 # Activate Member by Code
 @members_adm_router.patch(
     "/{member_code}/activate",
-    name="Activate Member by Code",
+    name="Activate Member",
+    summary="Activate Member by Code",
+    description="## Activate Member by Code",
     response_model=MemberResponse,
 )
 async def activate_member(
@@ -138,6 +155,8 @@ async def activate_member(
     "/{member_code_id}/promote_to_clergy",
     status_code=status.HTTP_200_OK,
     name="Promote Member to Clergy",
+    summary="Promote Member to Clergy",
+    description="## Promote Member to Clergy",
     response_model=MemberResponse,
 )
 async def promote_member_to_clergy(
@@ -160,6 +179,8 @@ async def promote_member_to_clergy(
     "/{member_code_id}/demote_from_clergy",
     status_code=status.HTTP_200_OK,
     name="Demote Member from Clergy",
+    summary="Demote Member from Clergy",
+    description="## Demote Member from Clergy",
     response_model=MemberResponse,
 )
 async def demote_member_from_clergy(
@@ -182,6 +203,8 @@ async def demote_member_from_clergy(
 @members_router.get(
     "/",
     name="Get All Members",
+    summary="Get All Members",
+    description="## Retrieve All Members",
     response_model=MemberResponse,
 )
 async def get_all_members(
@@ -201,6 +224,8 @@ async def get_all_members(
 @members_router.get(
     "/current",
     name="Get Current User Member",
+    summary="Get Current User Member",
+    description="## Get Current User Member",
     response_model=MemberResponse,
 )
 async def get_current_user_member(
@@ -223,7 +248,9 @@ async def get_current_user_member(
 # Get Member by Code
 @members_router.get(
     "/{member_code_id}",
-    name="Get Member by Code or Id",
+    name="Get Member",
+    summary="Get Member by Code or Id",
+    description="## Retrieve Member by Code or Id",
     response_model=MemberResponse,
 )
 async def get_member_by_code_id(
@@ -250,7 +277,9 @@ async def get_member_by_code_id(
 # Get Members by Church Code
 @members_router.get(
     "/church/{church_code}",
-    name="Get Members by Church Code",
+    name="Get Members by Church",
+    summary="Get Members by Church Code",
+    description="## Retrieve Members by Church Code",
     response_model=MemberResponse,
 )
 async def get_members_by_church(
@@ -271,6 +300,8 @@ async def get_members_by_church(
 @members_router.put(
     "/current/update",
     name="Update Current User Member",
+    summary="Update Current User Member",
+    description="## Update Current User Member",
     response_model=MemberResponse,
 )
 async def update_current_user_member(
@@ -296,7 +327,9 @@ async def update_current_user_member(
 # Update Member by Code or Id
 @members_router.put(
     "/{code}/update",
-    name="Update Member by Code or Id",
+    name="Update Member",
+    summary="Update Member by Code or Id",
+    description="## Update Member by Code or Id",
     response_model=MemberResponse,
 )
 async def update_member_by_code(
@@ -319,6 +352,8 @@ async def update_member_by_code(
     "/{member_code}/branch",
     status_code=status.HTTP_200_OK,
     name="Get Member Current Branch",
+    summary="Get Member Current Branch",
+    description="## Retrieve Member Current Branch",
     response_model=MemberBranchResponse,
 )
 async def get_member_current_branch(
@@ -341,7 +376,9 @@ async def get_member_current_branch(
 @member_branch_router.get(
     "/{member_code}/branch/{branch_code}",
     status_code=status.HTTP_200_OK,
-    name="Get Specific Member-Branch by Code",
+    name="Get Specific Member-Branch",
+    summary="Get Specific Member-Branch by Code",
+    description="## Retrieve Specific Member-Branch by Code",
     response_model=MemberBranchResponse,
 )
 async def get_member_branch_by_code(
@@ -373,7 +410,9 @@ async def get_member_branch_by_code(
 @member_branch_router.get(
     "/{member_code}/branches",
     status_code=status.HTTP_200_OK,
-    name="Get All Member-Branches by Member Code",
+    name="Get All Member-Branches by Member",
+    summary="Get All Member-Branches by Member Code",
+    description="## Retrieve All Member-Branches by Member Code",
     response_model=MemberBranchResponse,
 )
 async def get_member_all_branches(
@@ -404,11 +443,38 @@ async def get_member_all_branches(
     return response
 
 
+# Get Member Church Hierarchy
+@member_branch_router.get(
+    "/{member_code}/hierarchy",
+    status_code=status.HTTP_200_OK,
+    name="Get Member Church Hierarchy",
+    summary="Get Member Church Hierarchy by Member Code",
+    description="## Retrieve Member Church Hierarchy by Member Code",
+    response_model=MemberChurchHierarchyResponse,
+)
+async def get_member_church_hierarchy_by_member_code(
+    member_code: Annotated[str, Path(..., description="code of member")],
+    member_services: Annotated[MemberServices, Depends(get_member_services)],
+):
+    mc_hierarchy = await member_services.get_member_church_hierarchy_by_member_code(
+        member_code
+    )
+    # set response body
+    response = dict(
+        data=mc_hierarchy,
+        status_code=status.HTTP_200_OK,
+        message=f"Successfully retrieved the Member's Church Hierarchy for Member: '{mc_hierarchy.Member_Code}'",
+    )
+    return response
+
+
 # Exit Member From Church
 @member_branch_adm_router.patch(
     "/{member_code}/exit",
     status_code=status.HTTP_200_OK,
     name="Exit Member From Church",
+    summary="Exit Member From Church by Member Code",
+    description="## Exit Member From Church by Member Code",
     response_model=MemberBranchResponse,
 )
 async def exit_member_from_branch(
@@ -434,6 +500,8 @@ async def exit_member_from_branch(
     "/{member_code}/exit_all",
     status_code=status.HTTP_200_OK,
     name="Exit Member From All Churches",
+    summary="Exit Member From All Churches",
+    description="## Exit Member From All Churches",
     response_model=MemberBranchResponse,
 )
 async def exit_member_from_all_branches(
@@ -456,6 +524,8 @@ async def exit_member_from_all_branches(
     "/{member_code}/join",
     status_code=status.HTTP_200_OK,
     name="Join Member To Church",
+    summary="Join Member To Church by Member Code",
+    description="## Join Member To Church by Member Code",
     response_model=MemberBranchResponse,
 )
 async def join_member_to_branch(
@@ -483,6 +553,8 @@ async def join_member_to_branch(
     "/{member_branch_id}/update_reason",
     status_code=status.HTTP_200_OK,
     name="Update Member-Branch Reason",
+    summary="Get All Member-Branches by Member Code",
+    description="## Update Member-Branch Reason Member-Branches by Member Code",
     response_model=MemberBranchResponse,
 )
 async def update_member_branch_reason(
